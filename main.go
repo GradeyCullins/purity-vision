@@ -29,6 +29,72 @@ import (
 	// [END imports]
 )
 
+func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s <path-to-image>\n", filepath.Base(os.Args[0]))
+	}
+	flag.Parse()
+
+	args := flag.Args()
+	if len(args) == 0 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	// err := passSafeSearch(args[0])
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	// images := []string{"./data/bikini.jpg", "./data/puss.png", "./data/titty.jpg"}
+	imgURIs := []string{"https://i.imgur.com/gcWltJm.jpg", "https://i.imgur.com/MD6DSrC.png", "https://i.imgur.com/Vdob7RN.jpg"}
+	err := passSafeSearchList(imgURIs)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func passSafeSearchList(imgURIs []string) error {
+	// [START init]
+	ctx := context.Background()
+
+	// Create the client.
+	client, err := vision.NewImageAnnotatorClient(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	var annotateReqs []*pb.AnnotateImageRequest
+
+	// Loop over the files and create annotate requests.
+	for _, uri := range imgURIs {
+		// image, err := vision.NewImageFromReader(f)
+		image := vision.NewImageFromURI(uri)
+		annotateReqs = append(annotateReqs, &pb.AnnotateImageRequest{
+			Image: image,
+			Features: []*pb.Feature{
+				{Type: pb.Feature_SAFE_SEARCH_DETECTION, MaxResults: 5},
+			},
+		})
+
+	}
+	// [END init]
+	req := &pb.BatchAnnotateImagesRequest{
+		Requests: annotateReqs,
+	}
+	// op, err := client.AsyncBatchAnnotateImages(ctx, req)
+	resp, err := client.BatchAnnotateImages(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	
+	// TODO: Use resp.
+	fmt.Println(resp)
+
+	return nil
+}
+
 func passSafeSearch(file string) error {
 	// [START init]
 	ctx := context.Background()
@@ -47,6 +113,7 @@ func passSafeSearch(file string) error {
 	if err != nil {
 		return err
 	}
+
 	image, err := vision.NewImageFromReader(f)
 	if err != nil {
 		return err
@@ -65,56 +132,6 @@ func passSafeSearch(file string) error {
 	return nil
 }
 
-func passSafeSearchList(files []string) error {
-	// [START init]
-	ctx := context.Background()
-
-	// Create the client.
-	client, err := vision.NewImageAnnotatorClient(ctx)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	var annotateReqs []*pb.AnnotateImageRequest
-
-	// Loop over the files and create annotate requests.
-	for _, file := range files {
-		f, err := os.Open(file)
-		if err != nil {
-			return err
-		}
-		image, err := vision.NewImageFromReader(f)
-		if err != nil {
-			return err
-		}
-		annotateReqs = append(annotateReqs, &pb.AnnotateImageRequest{
-			Image: image,
-			Features: []*pb.Feature{
-				{Type: pb.Feature_SAFE_SEARCH_DETECTION, MaxResults: 5},
-			},
-		})
-
-	}
-	// [END init]
-	req := &pb.AsyncBatchAnnotateImagesRequest{
-		Requests: annotateReqs
-		// TODO: Fill request struct fields.
-	}
-	op, err := c.AsyncBatchAnnotateImages(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	
-	resp, err := op.Wait(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
-
-
-}
 // findLabels gets labels from the Vision API for an image at the given file path.
 func findLabels(file string) ([]string, error) {
 	// [START init]
@@ -152,35 +169,4 @@ func findLabels(file string) ([]string, error) {
 	}
 	return labels, nil
 	// [END transform]
-}
-
-func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s <path-to-image>\n", filepath.Base(os.Args[0]))
-	}
-	flag.Parse()
-
-	args := flag.Args()
-	if len(args) == 0 {
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	err := passSafeSearch(args[0])
-	if err != nil {
-		fmt.Println(err)
-	}
-	//labels, err := findLabels(args[0])
-	//if err != nil {
-	//	fmt.Fprintf(os.Stderr, "%v\n", err)
-	//	os.Exit(1)
-	//}
-	//if len(labels) == 0 {
-	//	fmt.Println("No labels found.")
-	//} else {
-	//	fmt.Println("Found labels:")
-	//	for _, label := range labels {
-	//		fmt.Println(label)
-	//	}
-	//}
 }
