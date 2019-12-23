@@ -22,6 +22,12 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 		log.Fatal(err)
 	}
 
+	if len(filterReqPayload.ImgURIList) == 0 {
+		w.WriteHeader(400)
+		w.Write([]byte("ImgUriList cannot be empty"))
+		return
+	}
+
 	// TODO: If the Google Vision API doesn't fail elegantly when the URIs don't
 	// point to images, do more validation here that determines whether the URI
 	// is or is not an image.
