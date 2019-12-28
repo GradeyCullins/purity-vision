@@ -19,7 +19,9 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&filterReqPayload); err != nil {
-		log.Fatal(err)
+		w.WriteHeader(400)
+		w.Write([]byte("JSON body missing or malformed"))
+		return
 	}
 
 	if len(filterReqPayload.ImgURIList) == 0 {
