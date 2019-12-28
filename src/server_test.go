@@ -40,6 +40,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 	}
 }
 
+// TODO rename to something more descriptive
 func testBatchImgFilterHandler(fr filterReq) (*httptest.ResponseRecorder, error) {
 	b, err := json.Marshal(fr)
 	if err != nil {
