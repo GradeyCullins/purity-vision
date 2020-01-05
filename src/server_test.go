@@ -10,7 +10,7 @@ import (
 )
 
 func TestBatchImgFilterHandler(t *testing.T) {
-	fr := filterReq{
+	fr := batchImgFilterReq{
 		ImgURIList: []string{},
 	}
 
@@ -22,7 +22,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 		t.Error("Web server should have returned a 400 because the ImgURIList was empty")
 	}
 
-	fr = filterReq{
+	fr = batchImgFilterReq{
 		ImgURIList: []string{"https://i.ytimg.com/vi/19VZZpzbh6s/maxresdefault.jpg"},
 	}
 
@@ -33,15 +33,15 @@ func TestBatchImgFilterHandler(t *testing.T) {
 	if res.Code != 200 {
 		t.Error("Web server should have returned a 200")
 	}
-	var fRes filterRes
+	var fRes batchImgFilterRes
 	json.Unmarshal(res.Body.Bytes(), &fRes)
-	if len(fRes.ImgPassList) != 1 || fRes.ImgPassList[0] != true {
+	if len(fRes.ImgFilterRes) != 1 || fRes.ImgFilterRes[0].Pass != true {
 		t.Error("Handler didn't return the right results")
 	}
 }
 
 // TODO rename to something more descriptive
-func testBatchImgFilterHandler(fr filterReq) (*httptest.ResponseRecorder, error) {
+func testBatchImgFilterHandler(fr batchImgFilterReq) (*httptest.ResponseRecorder, error) {
 	b, err := json.Marshal(fr)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to marshal request body struct")

@@ -8,25 +8,27 @@ import (
 	"net/url"
 )
 
+// Server listens on localhost:8080 by default.
+var listenAddr string = ":8080"
+
 // InitWebServer starts the simple web service.
 func InitWebServer() {
 	http.HandleFunc("/filter", batchImgFilterHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Printf("Web server now listening on %s\n", listenAddr)
+	log.Fatal(http.ListenAndServe(listenAddr, nil))
 }
 
 var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
-	var filterReqPayload filterReq
+	var filterReqPayload batchImgFilterReq
 
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&filterReqPayload); err != nil {
-		w.WriteHeader(400)
-		w.Write([]byte("JSON body missing or malformed"))
+		writeError(400, "JSON body missing or malformed", w)
 		return
 	}
 
 	if len(filterReqPayload.ImgURIList) == 0 {
-		w.WriteHeader(400)
-		w.Write([]byte("ImgUriList cannot be empty"))
+		writeError(400, "ImgUriList cannot be empty", w)
 		return
 	}
 
@@ -39,17 +41,23 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 	// Validate the request payload URIs
 	for _, uri := range filterReqPayload.ImgURIList {
 		if _, err := url.ParseRequestURI(uri); err != nil {
-			w.WriteHeader(400)
-			w.Write([]byte(fmt.Sprintf("%s is not a valid URI\n", uri)))
+			writeError(400, fmt.Sprintf("%s is not a valid URI\n", uri), w)
 			return
 		}
 	}
 
-	filterRes, err := filterImages(filterReqPayload.ImgURIList)
+	res, err := filterImages(filterReqPayload.ImgURIList)
 	if err != nil {
 		fmt.Println(err)
+		writeError(500, "Something went wrong", w)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(filterRes)
+	json.NewEncoder(w).Encode(res)
+}
+
+func writeError(code int, message string, w http.ResponseWriter) {
+	w.WriteHeader(code)
+	w.Write([]byte(message))
 }
