@@ -9,11 +9,12 @@ import (
 )
 
 // Server listens on localhost:8080 by default.
-var listenAddr string = ":8080"
+var listenAddr string = "127.0.0.1"
 
 // InitWebServer starts the simple web service.
-func InitWebServer() {
+func InitWebServer(port int) {
 	http.HandleFunc("/filter", batchImgFilterHandler)
+	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
 	log.Printf("Web server now listening on %s\n", listenAddr)
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
 }
