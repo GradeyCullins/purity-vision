@@ -1,4 +1,4 @@
-package src
+package server
 
 import (
 	"bytes"
@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/GradeyCullins/GoogleVisionFilter/src/types"
 )
 
 func TestBatchImgFilterHandler(t *testing.T) {
-	fr := batchImgFilterReq{
+	fr := types.BatchImgFilterReq{
 		ImgURIList: []string{},
 	}
 
@@ -22,7 +24,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 		t.Error("Web server should have returned a 400 because the ImgURIList was empty")
 	}
 
-	fr = batchImgFilterReq{
+	fr = types.BatchImgFilterReq{
 		ImgURIList: []string{"https://i.ytimg.com/vi/19VZZpzbh6s/maxresdefault.jpg"},
 	}
 
@@ -33,7 +35,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 	if res.Code != 200 {
 		t.Error("Web server should have returned a 200")
 	}
-	var fRes batchImgFilterRes
+	var fRes types.BatchImgFilterRes
 	json.Unmarshal(res.Body.Bytes(), &fRes)
 	if len(fRes.ImgFilterRes) != 1 || fRes.ImgFilterRes[0].Pass != true {
 		t.Error("Handler didn't return the right results")
@@ -41,7 +43,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 }
 
 // TODO rename to something more descriptive
-func testBatchImgFilterHandler(fr batchImgFilterReq) (*httptest.ResponseRecorder, error) {
+func testBatchImgFilterHandler(fr types.BatchImgFilterReq) (*httptest.ResponseRecorder, error) {
 	b, err := json.Marshal(fr)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to marshal request body struct")

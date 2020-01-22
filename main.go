@@ -2,27 +2,37 @@ package main
 
 import (
 	"flag"
+	"log"
 
-	"github.com/GradeyCullins/GoogleVisionFilter/src"
+	"github.com/GradeyCullins/GoogleVisionFilter/src/config"
+	"github.com/GradeyCullins/GoogleVisionFilter/src/db"
+	"github.com/GradeyCullins/GoogleVisionFilter/src/server"
 )
 
 var portFlag int
 
 func main() {
-	flag.IntVar(&portFlag, "port", 8080, "port to run the service on")
+	flag.IntVar(&portFlag, "port", config.DefaultPort, "port to run the service on")
 	flag.Parse()
 
-	src.InitWebServer(portFlag)
+	db, err := db.InitDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
-	// flag.Usage = func() {
-	// 	fmt.Fprintf(os.Stderr, "Usage: %s <path-to-image>\n", filepath.Base(os.Args[0]))
+	// rows, err := db.Query("SELECT * from users")
+	// if err != nil {
+	// 	log.Fatal(err)
 	// }
-	// flag.Parse()
-
-	// args := flag.Args()
-	// if len(args) == 0 {
-	// 	flag.Usage()
-	// 	os.Exit(1)
+	// defer rows.Close()
+	// for rows.Next() {
+	// 	var user models.User
+	// 	if err = rows.Scan(&user.UID, &user.Email, &user.Password); err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	fmt.Println(user)
 	// }
 
+	server.InitWebServer(portFlag, db)
 }

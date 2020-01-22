@@ -1,26 +1,36 @@
-package src
+package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/GradeyCullins/GoogleVisionFilter/src/filter"
+	"github.com/GradeyCullins/GoogleVisionFilter/src/types"
 )
 
 // Server listens on localhost:8080 by default.
 var listenAddr string = "127.0.0.1"
 
+// Store the db connection passed from main.go.
+var db *sql.DB
+
 // InitWebServer starts the simple web service.
-func InitWebServer(port int) {
+func InitWebServer(port int, _db *sql.DB) {
 	http.HandleFunc("/filter", batchImgFilterHandler)
 	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
+
+	db = _db
+
 	log.Printf("Web server now listening on %s\n", listenAddr)
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
 }
 
 var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
-	var filterReqPayload batchImgFilterReq
+	var filterReqPayload types.BatchImgFilterReq
 
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&filterReqPayload); err != nil {
@@ -49,7 +59,7 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	res, err := filterImages(filterReqPayload.ImgURIList)
+	res, err := filter.Images(filterReqPayload.ImgURIList)
 	if err != nil {
 		fmt.Println(err)
 		writeError(500, "Something went wrong", w)
