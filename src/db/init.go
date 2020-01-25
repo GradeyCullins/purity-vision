@@ -10,6 +10,20 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// User represents a user in the Purity system.
+type User struct {
+	UID      int    `json:"uid"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// ImageCacheEntry represents a pass/fail status of a previously queried img URI.
+type ImageCacheEntry struct {
+	ImgURIHash string         `json:"imgURIHash"`
+	Error      sql.NullString `json:"error"`
+	Pass       bool           `json:"pass"`
+}
+
 // InitDB intializes and returns a postgres database connection.
 func InitDB() (*sql.DB, error) {
 	dbHost := config.DBHost
@@ -22,11 +36,10 @@ func InitDB() (*sql.DB, error) {
 	}
 	sslMode := config.DBSSLMode
 	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, dbPassword, sslMode)
-	fmt.Println(connStr)
-	db, err := sql.Open("postgres", connStr)
+	conn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return db, nil
+	return conn, nil
 }

@@ -8,29 +8,91 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/GradeyCullins/GoogleVisionFilter/src/filter"
-	"github.com/GradeyCullins/GoogleVisionFilter/src/types"
+	"github.com/GradeyCullins/GoogleVisionFilter/src/db"
 )
 
 // Server listens on localhost:8080 by default.
 var listenAddr string = "127.0.0.1"
 
 // Store the db connection passed from main.go.
-var db *sql.DB
+var conn *sql.DB
 
-// InitWebServer starts the simple web service.
-func InitWebServer(port int, _db *sql.DB) {
+// BatchImgFilterReq is the form of an incoming JSON payload
+// for retrieving pass/fail status of each supplied image URI.
+type BatchImgFilterReq struct {
+	ImgURIList []string `json:"imgURIList"`
+}
+
+// ImgFilterRes returns the pass/fail status and any errors for a single image URI.
+//
+// TODO: consider adding 'URI' as a key. Currently, we are taking advantage of the fact
+// that the JSON RFC guarantees array ordering. Comment in the below link suggests that
+// there are known cases where order is not guaranteed.
+// https://stackoverflow.com/a/7214312
+type ImgFilterRes struct {
+	ImgURI string `json:"imgURI"`
+	Error  string `json:"error"`
+	Pass   bool   `json:"pass"`
+}
+
+// BatchImgFilterRes represents a list of pass/fail statuses and any errors for each
+// supplied image URI.
+type BatchImgFilterRes struct {
+	ImgFilterResList []ImgFilterRes `json:"imgFilterResList"`
+}
+
+// Server defines the common actions of a Purity API Web Server.
+type Server interface {
+	Init(int, *sql.DB)
+}
+
+// Serve is an instance of a Purity API Web Server.
+type Serve struct {
+	dbConn *sql.DB
+}
+
+// Init intializes the Serve instance and exposes it based on the port parameter.
+func (s *Serve) Init(port int) {
+	conn, err := db.InitDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.dbConn = conn
+
 	http.HandleFunc("/filter", batchImgFilterHandler)
 	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
 
-	db = _db
+	log.Printf("Web server now listening on %s\n", listenAddr)
+	log.Fatal(http.ListenAndServe(listenAddr, nil))
+
+}
+
+// Init intializes the Serve instance and exposes it based on the port parameter.
+func Init(port int, _conn *sql.DB) {
+	// Store the database connection in a global var.
+	conn = _conn
+
+	// Add endpoint handlers.
+	http.HandleFunc("/filter", batchImgFilterHandler)
+
+	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
+	log.Printf("Web server now listening on %s\n", listenAddr)
+	log.Fatal(http.ListenAndServe(listenAddr, nil))
+}
+
+// InitWebServer starts the simple web service.
+func InitWebServer(port int, _conn *sql.DB) {
+	http.HandleFunc("/filter", batchImgFilterHandler)
+	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
+
+	conn = _conn
 
 	log.Printf("Web server now listening on %s\n", listenAddr)
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
 }
 
 var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
-	var filterReqPayload types.BatchImgFilterReq
+	var filterReqPayload BatchImgFilterReq
 
 	decoder := json.NewDecoder(req.Body)
 	if err := decoder.Decode(&filterReqPayload); err != nil {
@@ -45,9 +107,6 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 
 	// TODO: There is a max number of URIs that can be included per batch request,
 	// add logic to split the list into multiple requests if that limit is reached.
-	// TODO: If the Google Vision API doesn't fail elegantly when the URIs don't
-	// point to images, do more validation here that determines whether the URI
-	// is or is not an image.
 	//
 	// Use content-type: image/* as a simple check, but this could be spoofed.
 	//
@@ -59,7 +118,8 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	res, err := filter.Images(db, filterReqPayload.ImgURIList)
+	// res, err := filter(conn, filterReqPayload.ImgURIList)
+	res, err := filter(filterReqPayload.ImgURIList)
 	if err != nil {
 		fmt.Println(err)
 		writeError(500, "Something went wrong", w)
