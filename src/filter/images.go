@@ -1,22 +1,24 @@
 package filter
 
 import (
+	"database/sql"
 	"fmt"
 
+	"github.com/GradeyCullins/GoogleVisionFilter/src/cache"
 	"github.com/GradeyCullins/GoogleVisionFilter/src/types"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
 
 // Images takes a list of image URIs and returns an HTTP payload
 // with pass/fail status and any errors for each supplied URI.
-func Images(imgURIs []string) (*types.BatchImgFilterRes, error) {
+func Images(db *sql.DB, imgURIs []string) (*types.BatchImgFilterRes, error) {
 	imgFilterList := make([]types.ImgFilterRes, len(imgURIs))
 
 	// TODO: implement cache for avoiding redundant Vision API calls.
-	// cacheRes, err := checkImgCache(imgURIs)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	_, err := cache.CheckImgCache(db, imgURIs)
+	if err != nil {
+		return nil, err
+	}
 
 	imgAnnotationsRes, err := getImgAnnotations(imgURIs)
 	if err != nil {

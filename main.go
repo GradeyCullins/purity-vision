@@ -21,18 +21,5 @@ func main() {
 	}
 	defer db.Close()
 
-	// rows, err := db.Query("SELECT * from users")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer rows.Close()
-	// for rows.Next() {
-	// 	var user models.User
-	// 	if err = rows.Scan(&user.UID, &user.Email, &user.Password); err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	fmt.Println(user)
-	// }
-
 	server.InitWebServer(portFlag, db)
 }

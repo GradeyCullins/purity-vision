@@ -1,19 +1,34 @@
 package config
 
+import "os"
+
 var (
-	// Default port to expose the API server on.
+	// DefaultPort is the default port to expose the API server.
 	DefaultPort int = 8080
+
+	// DBHost is the host machine running the postgres instance.
+	DBHost string = getEnvWithDefault("PURITY_DB_HOST", "localhost")
+
+	// DBPort is the port that exposes the db server.
+	DBPort string = getEnvWithDefault("PURITY_DB_PORT", "5432")
+
+	// DBName is the postgres database name.
+	DBName string = getEnvWithDefault("PURITY_DB_NAME", "purity")
+
+	// DBUser is the postgres user account.
+	DBUser string = getEnvWithDefault("PURITY_DB_USER", "postgres")
+
+	// DBPassword is the password for the DBUser postgres account.
+	DBPassword string = getEnvWithDefault("PURITY_DB_PASS", "")
+
+	// DBSSLMode sets the SSL mode of the postgres client.
+	DBSSLMode string = getEnvWithDefault("PURITY_DB_SSL_MODE", "disable")
 )
 
-// DB defines connection string details for the postgres connection.
-var DB = struct {
-	Name     string
-	User     string
-	Password string
-	SSLMode  string
-}{
-	"purity",
-	"postgres",
-	"password",
-	"disable",
+func getEnvWithDefault(name string, def string) string {
+	res := os.Getenv(name)
+	if res == "" {
+		return def
+	}
+	return res
 }

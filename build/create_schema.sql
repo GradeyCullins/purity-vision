@@ -15,6 +15,7 @@ ALTER TABLE public.users
 CREATE TABLE public.image_cache
 (
     img_uri_hash text NOT NULL,
+    error text,
     pass boolean NOT NULL,
     PRIMARY KEY (img_uri_hash)
 );
