@@ -2,31 +2,51 @@ package server
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/GradeyCullins/GoogleVisionFilter/src/db"
 )
 
+type TestServe struct {
+}
+
+func (s *TestServe) Init(_conn *sql.DB) {
+	conn = _conn
+}
+
 func TestBatchImgFilterHandler(t *testing.T) {
-	// fr := BatchImgFilterReq{
-	// 	ImgURIList: []string{},
-	// }
+	conn, err := db.InitDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
 
-	// res, err := testBatchImgFilterHandler(fr)
-	// if err != nil {
-
-	// }
-	// if res.Code != 400 || res.Body.String() != "ImgUriList cannot be empty" {
-	// 	t.Error("Web server should have returned a 400 because the ImgURIList was empty")
-	// }
+	s := TestServe{}
+	s.Init(conn)
 
 	fr := BatchImgFilterReq{
-		ImgURIList: []string{"https://i.ytimg.com/vi/19VZZpzbh6s/maxresdefault.jpg"},
+		ImgURIList: []string{},
 	}
 
 	res, err := testBatchImgFilterHandler(fr)
+	if err != nil {
+
+	}
+	if res.Code != 400 || res.Body.String() != "ImgUriList cannot be empty" {
+		t.Error("Web server should have returned a 400 because the ImgURIList was empty")
+	}
+
+	fr = BatchImgFilterReq{
+		ImgURIList: []string{"https://i.ytimg.com/vi/19VZZpzbh6s/maxresdefault.jpg"},
+	}
+
+	res, err = testBatchImgFilterHandler(fr)
 	if err != nil {
 		t.Error(err)
 	}

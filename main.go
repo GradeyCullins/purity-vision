@@ -21,5 +21,6 @@ func main() {
 	}
 	defer conn.Close()
 
-	server.Init(portFlag, conn)
+	s := server.NewServe()
+	s.Init(portFlag, conn)
 }

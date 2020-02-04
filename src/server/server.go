@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-
-	"github.com/GradeyCullins/GoogleVisionFilter/src/db"
 )
 
 // Server listens on localhost:8080 by default.
@@ -41,34 +39,22 @@ type BatchImgFilterRes struct {
 	ImgFilterResList []ImgFilterRes `json:"imgFilterResList"`
 }
 
-// Server defines the common actions of a Purity API Web Server.
+// Server defines the actions of a Purity API Web Server.
 type Server interface {
 	Init(int, *sql.DB)
 }
 
 // Serve is an instance of a Purity API Web Server.
 type Serve struct {
-	dbConn *sql.DB
+}
+
+// NewServe returns an uninitialized Serve instance.
+func NewServe() *Serve {
+	return &Serve{}
 }
 
 // Init intializes the Serve instance and exposes it based on the port parameter.
-func (s *Serve) Init(port int) {
-	conn, err := db.InitDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	s.dbConn = conn
-
-	http.HandleFunc("/filter", batchImgFilterHandler)
-	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
-
-	log.Printf("Web server now listening on %s\n", listenAddr)
-	log.Fatal(http.ListenAndServe(listenAddr, nil))
-
-}
-
-// Init intializes the Serve instance and exposes it based on the port parameter.
-func Init(port int, _conn *sql.DB) {
+func (s *Serve) Init(port int, _conn *sql.DB) {
 	// Store the database connection in a global var.
 	conn = _conn
 
@@ -76,17 +62,6 @@ func Init(port int, _conn *sql.DB) {
 	http.HandleFunc("/filter", batchImgFilterHandler)
 
 	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
-	log.Printf("Web server now listening on %s\n", listenAddr)
-	log.Fatal(http.ListenAndServe(listenAddr, nil))
-}
-
-// InitWebServer starts the simple web service.
-func InitWebServer(port int, _conn *sql.DB) {
-	http.HandleFunc("/filter", batchImgFilterHandler)
-	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
-
-	conn = _conn
-
 	log.Printf("Web server now listening on %s\n", listenAddr)
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
 }
