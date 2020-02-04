@@ -15,11 +15,11 @@ func main() {
 	flag.IntVar(&portFlag, "port", config.DefaultPort, "port to run the service on")
 	flag.Parse()
 
-	db, err := db.InitDB()
+	conn, err := db.InitDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	server.InitWebServer(portFlag, db)
+	server.Init(portFlag, conn)
 }
