@@ -2,11 +2,10 @@ package main
 
 import (
 	"flag"
+	"google-vision-filter/src/config"
+	"google-vision-filter/src/db"
+	"google-vision-filter/src/server"
 	"log"
-
-	"github.com/GradeyCullins/GoogleVisionFilter/src/config"
-	"github.com/GradeyCullins/GoogleVisionFilter/src/db"
-	"github.com/GradeyCullins/GoogleVisionFilter/src/server"
 )
 
 var portFlag int
