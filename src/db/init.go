@@ -3,8 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
-
-	"github.com/GradeyCullins/GoogleVisionFilter/src/config"
+	"google-vision-filter/src/config"
 
 	// Postgres SQL driver.
 	_ "github.com/lib/pq"

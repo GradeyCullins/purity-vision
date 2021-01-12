@@ -4,8 +4,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
-
-	"github.com/GradeyCullins/GoogleVisionFilter/src/db"
+	"google-vision-filter/src/db"
 )
 
 func checkImgCache(conn *sql.DB, imgURIList []string) (*BatchImgFilterRes, error) {
@@ -27,7 +26,7 @@ func checkImgCache(conn *sql.DB, imgURIList []string) (*BatchImgFilterRes, error
 	}
 
 	// Query DB for hashes using IN (val1, val2,... valn) syntax
-	rows, err := conn.Query("SELECT * from image_cache i WHERE i.img_uri_hash IN (" + imgHashIn + ")")
+	rows, err := conn.Query("SELECT * from images i WHERE i.img_uri_hash IN (" + imgHashIn + ")")
 	if err != nil {
 		return nil, err
 	}

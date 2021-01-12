@@ -2,8 +2,8 @@ package server
 
 import (
 	"fmt"
+	"google-vision-filter/src/vision"
 
-	"github.com/GradeyCullins/GoogleVisionFilter/src/vision"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
 
@@ -50,10 +50,10 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 		}
 	}
 
-	// Insert the new entries into the image cache.
-	imgFilterList = append(imgFilterList, cacheRes.ImgFilterResList...)
+	// TODO: Insert the new entries into the image cache.
 
 	// Merge the cache response and the response.
+	imgFilterList = append(imgFilterList, cacheRes.ImgFilterResList...)
 
 	return &BatchImgFilterRes{ImgFilterResList: imgFilterList}, nil
 }
