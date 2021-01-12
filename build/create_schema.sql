@@ -12,7 +12,7 @@ ALTER TABLE public.users
 ALTER TABLE public.users
     ALTER COLUMN uid ADD GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 );
 
-CREATE TABLE public.image_cache
+CREATE TABLE public.images
 (
     img_uri_hash text NOT NULL,
     error text,
@@ -20,5 +20,5 @@ CREATE TABLE public.image_cache
     PRIMARY KEY (img_uri_hash)
 );
 
-ALTER TABLE public.image_cache
+ALTER TABLE public.images
     OWNER to postgres;

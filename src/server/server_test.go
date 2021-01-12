@@ -5,12 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"google-vision-filter/src/db"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/GradeyCullins/GoogleVisionFilter/src/db"
 )
 
 type TestServe struct {
