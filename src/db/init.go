@@ -16,8 +16,8 @@ type User struct {
 	Password string `json:"password"`
 }
 
-// ImageCacheEntry represents a pass/fail status of a previously queried img URI.
-type ImageCacheEntry struct {
+// Image represents a pass/fail status of a previously queried img URI.
+type Image struct {
 	ImgURIHash string         `json:"imgURIHash"`
 	Error      sql.NullString `json:"error"`
 	Pass       bool           `json:"pass"`
@@ -37,6 +37,9 @@ func InitDB() (*sql.DB, error) {
 	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, dbPassword, sslMode)
 	conn, err := sql.Open("postgres", connStr)
 	if err != nil {
+		return nil, err
+	}
+	if err = conn.Ping(); err != nil {
 		return nil, err
 	}
 
