@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"google-vision-filter/src/db"
+	"google-vision-filter/src/utils"
 	"google-vision-filter/src/vision"
 
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
@@ -10,19 +12,31 @@ import (
 // Images takes a list of image URIs and returns an HTTP payload
 // with pass/fail status and any errors for each supplied URI.
 func filter(imgURIList []string) (*BatchImgFilterRes, error) {
-	cacheRes, err := checkImgCache(conn, imgURIList)
+	cachedImgFilterList := make([]ImgFilterRes, 0)
+
+	// Images that are cached in DB.
+	dbImgList, err := db.FindImagesByURI(conn, imgURIList)
 	if err != nil {
 		return nil, err
 	}
 
-	imgFilterList := make([]ImgFilterRes, len(imgURIList)-len(cacheRes.ImgFilterResList))
+	// Populate map of uriHashes -> uris to be used in results later.
+	for _, img := range dbImgList {
+		for _, uri := range imgURIList {
+			if img.ImgURIHash == utils.Hash(uri) {
+				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
+			}
+		}
+	}
 
-	// Filter out URIs returned from the cache.
-	for _, imgFilterRes := range cacheRes.ImgFilterResList {
+	imgFilterList := make([]ImgFilterRes, len(imgURIList)-len(dbImgList))
+
+	// Filter out URIs returned from the DB.
+	for _, img := range dbImgList {
 		for i, uri := range imgURIList {
 			// If the URI is found in the cache response, remove it from the URI list to avoid
 			// redundant Google Vision API request.
-			if imgFilterRes.ImgURI == uri {
+			if img.ImgURIHash == utils.Hash(uri) {
 				imgURIList[i] = imgURIList[len(imgURIList)-1]
 				imgURIList = imgURIList[:len(imgURIList)-1]
 			}
@@ -53,7 +67,7 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 	// TODO: Insert the new entries into the image cache.
 
 	// Merge the cache response and the response.
-	imgFilterList = append(imgFilterList, cacheRes.ImgFilterResList...)
+	imgFilterList = append(imgFilterList, cachedImgFilterList...)
 
 	return &BatchImgFilterRes{ImgFilterResList: imgFilterList}, nil
 }
