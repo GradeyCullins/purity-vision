@@ -1,18 +1,18 @@
 package db
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"google-vision-filter/src/utils"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v4"
 )
 
 // ImgTableName is the SQL table name for images.
 const ImgTableName = "images"
 
 // FindImagesByURI returns images that have matching URI's.
-func FindImagesByURI(db *sql.DB, imgURIList []string) ([]Image, error) {
+func FindImagesByURI(conn *pgx.Conn, imgURIList []string) ([]Image, error) {
 	if len(imgURIList) == 0 {
 		return nil, fmt.Errorf("imgURIList cannot be empty")
 	}
@@ -25,22 +25,12 @@ func FindImagesByURI(db *sql.DB, imgURIList []string) ([]Image, error) {
 		uriHashList = append(uriHashList, utils.Hash(uri))
 	}
 
-	// Build the SQL 'IN' clause.
-	// for i, uri := range imgURIList {
-	// 	uriHash := utils.Hash(uri)
-	// 	imgHashes[uriHash] = uri
-	// 	imgHashIn = imgHashIn + "'" + uriHash + "'"
-	// 	if i < len(imgURIList)-1 {
-	// 		imgHashIn = imgHashIn + ", "
-	// 	}
-	// }
-	// inClause := "?" + strings.Repeat(", ?", len(imgURIList)-1)
+	// Can't use IN because it is not supported:
+	// https://github.com/jackc/pgx/issues/334
+	// https://github.com/lib/pq/issues/515
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE img_uri_hash = ANY($1)`, ImgTableName)
 
-	// Query DB for URI hashes using IN (val1, val2,... valn) syntax
-	// query := fmt.Sprintf("SELECT * FROM %s i WHERE i.img_uri_hash IN ($1);", ImgTableName)
-	query := `SELECT * FROM images WHERE img_uri_hash = ANY($1)`
-
-	rows, err := db.Query(query, pq.Array(uriHashList))
+	rows, err := conn.Query(context.Background(), query, uriHashList)
 	if err != nil {
 		return nil, err
 	}
@@ -58,9 +48,9 @@ func FindImagesByURI(db *sql.DB, imgURIList []string) ([]Image, error) {
 }
 
 // InsertImage inserts the image into the DB.
-func InsertImage(db *sql.DB, image Image) error {
+func InsertImage(conn *pgx.Conn, image Image) error {
 	statement := fmt.Sprintf("INSERT INTO %s VALUES ($1, $2, $3)", ImgTableName)
-	_, err := db.Exec(statement, image.ImgURIHash, image.Error.String, image.Pass)
+	_, err := conn.Exec(context.Background(), statement, image.ImgURIHash, image.Error.String, image.Pass)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,7 @@ package server
 
 import (
 	"bytes"
-	"database/sql"
+	"context"
 	"encoding/json"
 	"fmt"
 	"google-vision-filter/src/db"
@@ -10,12 +10,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/jackc/pgx/v4"
 )
 
 type TestServe struct {
 }
 
-func (s *TestServe) Init(_conn *sql.DB) {
+func (s *TestServe) Init(_conn *pgx.Conn) {
 	conn = _conn
 }
 
@@ -24,7 +26,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close()
+	defer conn.Close(context.Background())
 
 	s := TestServe{}
 	s.Init(conn)
