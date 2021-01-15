@@ -1,10 +1,12 @@
 package server
 
 import (
+	"database/sql"
 	"fmt"
 	"google-vision-filter/src/db"
 	"google-vision-filter/src/utils"
 	"google-vision-filter/src/vision"
+	"log"
 
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
@@ -43,28 +45,45 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 		}
 	}
 
-	imgAnnotationsRes, err := vision.GetImgAnnotations(imgURIList)
-	if err != nil {
-		return nil, err
-	}
+	if len(imgURIList) > 0 {
+		imgAnnotationsRes, err := vision.GetImgAnnotations(imgURIList)
+		if err != nil {
+			return nil, err
+		}
 
-	for i, res := range imgAnnotationsRes.Responses {
-		if res.Error != nil {
-			imgFilterList[i] = ImgFilterRes{
-				ImgURI: imgURIList[i],
-				Error:  fmt.Sprintf("Failed to annotate image: %s with error: %s", imgURIList[i], res.Error),
-				Pass:   false,
-			}
-		} else {
-			imgFilterList[i] = ImgFilterRes{
-				ImgURI: imgURIList[i],
-				Error:  "",
-				Pass:   isImgSafe(res),
+		for i, res := range imgAnnotationsRes.Responses {
+			if res.Error != nil {
+				imgFilterList[i] = ImgFilterRes{
+					ImgURI: imgURIList[i],
+					Error:  fmt.Sprintf("Failed to annotate image: %s with error: %s", imgURIList[i], res.Error),
+					Pass:   false,
+				}
+			} else {
+				imgFilterList[i] = ImgFilterRes{
+					ImgURI: imgURIList[i],
+					Error:  "",
+					Pass:   isImgSafe(res),
+				}
 			}
 		}
+	} else {
+		fmt.Println("No new images were sent to Vision API")
 	}
 
-	// TODO: Insert the new entries into the image cache.
+	// Cache the new image filter response entries in the image table.
+	for _, filterRes := range imgFilterList {
+		valid := false
+		// TODO correct?
+		if filterRes.Error != "" {
+			valid = true
+		}
+		db.InsertImage(conn, db.Image{
+			ImgURIHash: utils.Hash(filterRes.ImgURI),
+			Error:      sql.NullString{String: filterRes.Error, Valid: valid},
+			Pass:       filterRes.Pass,
+		})
+		log.Printf("Adding %s to DB cache", filterRes.ImgURI)
+	}
 
 	// Merge the cache response and the response.
 	imgFilterList = append(imgFilterList, cachedImgFilterList...)

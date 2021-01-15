@@ -12,6 +12,10 @@ import (
 // GetImgAnnotations sends a batch request to the Google Vision API to retrieve tags and likelihood values
 // for the URI list in the batch request.
 func GetImgAnnotations(imgURIs []string) (*pb.BatchAnnotateImagesResponse, error) {
+	if len(imgURIs) == 0 {
+		return nil, nil
+	}
+
 	ctx := context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(ctx)
