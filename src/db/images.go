@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"google-vision-filter/src/utils"
+	"log"
 
 	"github.com/jackc/pgx/v4"
 )
@@ -37,10 +38,10 @@ func FindImagesByURI(conn *pgx.Conn, imgURIList []string) ([]Image, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var img Image
-		if err = rows.Scan(&img.ImgURIHash, &img.Error, &img.Pass); err != nil {
+		if err = rows.Scan(&img.ImgURIHash, &img.Error, &img.Pass, &img.DateAdded); err != nil {
 			return nil, err
 		}
-		fmt.Printf("Found cached image: %v\n", img)
+		log.Printf("Found cached image: %v\n", img)
 		imgList = append(imgList, img)
 	}
 
