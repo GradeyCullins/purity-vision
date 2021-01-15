@@ -92,7 +92,7 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 
 	res, err := filter(filterReqPayload.ImgURIList)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		writeError(500, "Something went wrong", w)
 		return
 	}
