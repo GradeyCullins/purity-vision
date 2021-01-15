@@ -80,11 +80,6 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: There is a max number of URIs that can be included per batch request,
-	// add logic to split the list into multiple requests if that limit is reached.
-	//
-	// Use content-type: image/* as a simple check, but this could be spoofed.
-	//
 	// Validate the request payload URIs
 	for _, uri := range filterReqPayload.ImgURIList {
 		if _, err := url.ParseRequestURI(uri); err != nil {
