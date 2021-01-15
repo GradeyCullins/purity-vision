@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"google-vision-filter/src/config"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 )
@@ -21,6 +22,7 @@ type Image struct {
 	ImgURIHash string         `json:"imgURIHash"`
 	Error      sql.NullString `json:"error"`
 	Pass       bool           `json:"pass"`
+	DateAdded  time.Time      `json:"dateAdded"`
 }
 
 // InitDB intializes and returns a postgres database connection.

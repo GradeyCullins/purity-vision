@@ -67,7 +67,7 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 			}
 		}
 	} else {
-		fmt.Println("No new images were sent to Vision API")
+		log.Println("No new images were sent to Vision API")
 	}
 
 	// Cache the new image filter response entries in the image table.

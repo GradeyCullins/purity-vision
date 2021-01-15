@@ -2,7 +2,7 @@ package vision
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"os"
 
 	vision "cloud.google.com/go/vision/apiv1"
@@ -83,7 +83,7 @@ func passSafeSearch(file string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(res)
+	log.Println(res)
 	return nil
 }
 

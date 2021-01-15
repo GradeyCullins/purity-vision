@@ -17,6 +17,7 @@ CREATE TABLE public.images
     img_uri_hash text NOT NULL,
     error text,
     pass boolean NOT NULL,
+    date_added timestamp NOT NULL default CURRENT_TIMESTAMP,
     PRIMARY KEY (img_uri_hash)
 );
 
