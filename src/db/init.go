@@ -1,12 +1,12 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"google-vision-filter/src/config"
 
-	// Postgres SQL driver.
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v4"
 )
 
 // User represents a user in the Purity system.
@@ -24,7 +24,7 @@ type Image struct {
 }
 
 // InitDB intializes and returns a postgres database connection.
-func InitDB() (*sql.DB, error) {
+func InitDB() (*pgx.Conn, error) {
 	dbHost := config.DBHost
 	dbPort := config.DBPort
 	dbName := config.DBName
@@ -35,11 +35,11 @@ func InitDB() (*sql.DB, error) {
 	}
 	sslMode := config.DBSSLMode
 	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, dbPassword, sslMode)
-	conn, err := sql.Open("postgres", connStr)
+	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		return nil, err
 	}
-	if err = conn.Ping(); err != nil {
+	if err = conn.Ping(context.Background()); err != nil {
 		return nil, err
 	}
 
