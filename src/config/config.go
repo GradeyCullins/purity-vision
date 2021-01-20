@@ -2,6 +2,12 @@ package config
 
 import "os"
 
+// DefaultDBName is the default name of the database.
+const DefaultDBName = "purity"
+
+// DefaultDBTestName is the default name of the test database.
+const DefaultDBTestName = "purity_test"
+
 var (
 	// DefaultPort is the default port to expose the API server.
 	DefaultPort int = 8080
@@ -13,7 +19,7 @@ var (
 	DBPort string = getEnvWithDefault("PURITY_DB_PORT", "5432")
 
 	// DBName is the postgres database name.
-	DBName string = getEnvWithDefault("PURITY_DB_NAME", "purity")
+	DBName string = getEnvWithDefault("PURITY_DB_NAME", DefaultDBName)
 
 	// DBUser is the postgres user account.
 	DBUser string = getEnvWithDefault("PURITY_DB_USER", "postgres")
