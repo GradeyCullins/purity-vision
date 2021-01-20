@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"google-vision-filter/src/config"
+	"google-vision-filter/src/utils"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -25,11 +26,24 @@ type Image struct {
 	DateAdded  time.Time      `json:"dateAdded"`
 }
 
+// NewImage returns a new Image instance (wow).
+func NewImage(imgURI string, err string, pass bool, dateAdded time.Time) Image {
+	return Image{
+		ImgURIHash: utils.Hash(imgURI),
+		Error:      sql.NullString{String: err, Valid: true},
+		Pass:       pass,
+		DateAdded:  dateAdded,
+	}
+}
+
 // InitDB intializes and returns a postgres database connection.
-func InitDB() (*pgx.Conn, error) {
+func InitDB(dbName string) (*pgx.Conn, error) {
 	dbHost := config.DBHost
 	dbPort := config.DBPort
-	dbName := config.DBName
+	if dbName == "" {
+		dbName = config.DBName
+	}
+	fmt.Println(dbName)
 	dbUser := config.DBUser
 	dbPassword := config.DBPassword
 	if dbPassword == "" {
