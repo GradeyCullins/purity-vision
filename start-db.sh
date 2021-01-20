@@ -1,4 +1,6 @@
 #/usr/bin/env bash
+
+echo "Creating database container"
 docker run --name purity-pg \
     -p ${PURITY_DB_PORT}:5432 \
     -e POSTGRES_DB="${PURITY_DB_NAME}" \
