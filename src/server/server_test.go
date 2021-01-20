@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"google-vision-filter/src/config"
 	"google-vision-filter/src/db"
 	"log"
 	"net/http"
@@ -22,7 +23,7 @@ func (s *TestServe) Init(_conn *pgx.Conn) {
 }
 
 func TestBatchImgFilterHandler(t *testing.T) {
-	conn, err := db.InitDB()
+	conn, err := db.InitDB(config.DefaultDBTestName)
 	if err != nil {
 		log.Fatal(err)
 	}

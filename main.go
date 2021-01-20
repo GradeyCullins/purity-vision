@@ -15,7 +15,7 @@ func main() {
 	flag.IntVar(&portFlag, "port", config.DefaultPort, "port to run the service on")
 	flag.Parse()
 
-	conn, err := db.InitDB()
+	conn, err := db.InitDB(config.DefaultDBName)
 	if err != nil {
 		log.Fatal(err)
 	}
