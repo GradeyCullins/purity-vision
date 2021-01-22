@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"google-vision-filter/src/config"
+	"google-vision-filter/src/utils"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/go-pg/pg/v10"
 )
 
 // User represents a user in the Purity system.
@@ -25,23 +26,42 @@ type Image struct {
 	DateAdded  time.Time      `json:"dateAdded"`
 }
 
+// NewImage returns a new Image instance (wow).
+func NewImage(imgURI string, err string, pass bool, dateAdded time.Time) Image {
+	return Image{
+		ImgURIHash: utils.Hash(imgURI),
+		Error:      sql.NullString{String: err, Valid: true},
+		Pass:       pass,
+		DateAdded:  dateAdded,
+	}
+}
+
 // InitDB intializes and returns a postgres database connection.
-func InitDB() (*pgx.Conn, error) {
+func InitDB(dbName string) (*pg.DB, error) {
 	dbHost := config.DBHost
 	dbPort := config.DBPort
-	dbName := config.DBName
+	dbAddr := fmt.Sprintf("%s:%s", dbHost, dbPort)
+	if dbName == "" {
+		dbName = config.DBName
+	}
 	dbUser := config.DBUser
 	dbPassword := config.DBPassword
 	if dbPassword == "" {
 		return nil, fmt.Errorf("Missing postgres password. Export \"PURITY_DB_PASS=<your_password>\"")
 	}
-	sslMode := config.DBSSLMode
-	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, dbPassword, sslMode)
-	conn, err := pgx.Connect(context.Background(), connStr)
+
+	// TODO: use
+	// tlsConfig := &tls.Config{}
+
+	conn := pg.Connect(&pg.Options{
+		Addr:     dbAddr,
+		User:     dbUser,
+		Password: dbPassword,
+		Database: dbName,
+	})
+
+	err := conn.Ping(context.Background())
 	if err != nil {
-		return nil, err
-	}
-	if err = conn.Ping(context.Background()); err != nil {
 		return nil, err
 	}
 
