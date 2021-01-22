@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/go-pg/pg/v10"
 )
 
 // Server listens on localhost:8080 by default.
 var listenAddr string = "127.0.0.1"
 
 // Store the db connection passed from main.go.
-var conn *pgx.Conn
+var conn *pg.DB
 
 // BatchImgFilterReq is the form of an incoming JSON payload
 // for retrieving pass/fail status of each supplied image URI.
@@ -56,7 +56,7 @@ func NewServe() *Serve {
 }
 
 // Init intializes the Serve instance and exposes it based on the port parameter.
-func (s *Serve) Init(port int, _conn *pgx.Conn) {
+func (s *Serve) Init(port int, _conn *pg.DB) {
 	// Store the database connection in a global var.
 	conn = _conn
 
