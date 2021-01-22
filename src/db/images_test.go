@@ -1,16 +1,17 @@
 package db
 
 import (
-	"context"
+	"google-vision-filter/src/config"
 	"log"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/go-pg/pg/v10"
 )
 
-var conn *pgx.Conn
+var conn *pg.DB
+var tx *pg.Tx
 var err error
 var imgURIList = []string{
 	"https://hatrabbits.com/wp-content/uploads/2017/01/random.jpg",
@@ -19,20 +20,12 @@ var imgURIList = []string{
 }
 
 func TestMain(m *testing.M) {
-	conn, err = InitDB("purity_test")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tx, err := conn.Begin(context.Background())
+	conn, err = InitDB(config.DefaultDBTestName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	exitCode := m.Run()
-
-	// Don't persist any changes to the test database after tests are complete.
-	tx.Rollback(context.Background())
 
 	os.Exit(exitCode)
 }
@@ -63,5 +56,14 @@ func TestFindImagesByURI(t *testing.T) {
 	imgList, err = FindImagesByURI(conn, smallURIList)
 	if err == nil {
 		t.Fatal("Expected FindImagesByURI to return an error because imgURIList cannot be empty")
+	}
+}
+
+func TestDeleteImagesByURI(t *testing.T) {
+	for _, uri := range imgURIList {
+		err = DeleteImageByURI(conn, uri)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
