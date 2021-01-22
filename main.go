@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"google-vision-filter/src/config"
 	"google-vision-filter/src/db"
@@ -15,11 +14,11 @@ func main() {
 	flag.IntVar(&portFlag, "port", config.DefaultPort, "port to run the service on")
 	flag.Parse()
 
-	conn, err := db.InitDB()
+	conn, err := db.InitDB(config.DefaultDBName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	s := server.NewServe()
 	s.Init(portFlag, conn)

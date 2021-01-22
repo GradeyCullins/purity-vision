@@ -2,34 +2,35 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
+	"google-vision-filter/src/config"
 	"google-vision-filter/src/db"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/go-pg/pg/v10"
 )
 
 type TestServe struct {
 }
 
-func (s *TestServe) Init(_conn *pgx.Conn) {
+func (s *TestServe) Init(_conn *pg.DB) {
 	conn = _conn
 }
 
 func TestBatchImgFilterHandler(t *testing.T) {
-	conn, err := db.InitDB()
+	conn, err := db.InitDB(config.DefaultDBTestName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	s := TestServe{}
 	s.Init(conn)
+	uri := "https://i.ytimg.com/vi/19VZZpzbh6s/maxresdefault.jpg"
 
 	fr := BatchImgFilterReq{
 		ImgURIList: []string{},
@@ -44,7 +45,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 	}
 
 	fr = BatchImgFilterReq{
-		ImgURIList: []string{"https://i.ytimg.com/vi/19VZZpzbh6s/maxresdefault.jpg"},
+		ImgURIList: []string{uri},
 	}
 
 	res, err = testBatchImgFilterHandler(fr)
@@ -61,6 +62,11 @@ func TestBatchImgFilterHandler(t *testing.T) {
 	json.Unmarshal(res.Body.Bytes(), &fRes)
 	if len(fRes.ImgFilterResList) != 1 || fRes.ImgFilterResList[0].Pass != true {
 		t.Error("Handler didn't return the right results")
+	}
+
+	// Delete the img from the DB.
+	if err = db.DeleteImageByURI(conn, uri); err != nil {
+		t.Log(err)
 	}
 }
 

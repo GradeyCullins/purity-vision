@@ -1,3 +1,4 @@
+-- Setup purity schema.
 CREATE TABLE public.users
 (
     uid bigint NOT NULL,
@@ -23,3 +24,6 @@ CREATE TABLE public.images
 
 ALTER TABLE public.images
     OWNER to postgres;
+
+-- Create the test database.
+CREATE DATABASE purity_test WITH TEMPLATE purity;
