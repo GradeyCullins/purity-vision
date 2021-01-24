@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/go-pg/pg/v10"
+	"github.com/rs/zerolog/log"
 )
 
 // Server listens on localhost:8080 by default.
@@ -64,8 +64,8 @@ func (s *Serve) Init(port int, _conn *pg.DB) {
 	http.HandleFunc("/filter", batchImgFilterHandler)
 
 	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
-	log.Printf("Web server now listening on %s\n", listenAddr)
-	log.Fatal(http.ListenAndServe(listenAddr, nil))
+	log.Info().Msgf("Web server now listening on %s", listenAddr)
+	log.Fatal().Msg(http.ListenAndServe(listenAddr, nil).Error())
 }
 
 var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
@@ -92,7 +92,7 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 
 	res, err := filter(filterReqPayload.ImgURIList)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Msg("")
 		writeError(500, "Something went wrong", w)
 		return
 	}

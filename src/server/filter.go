@@ -6,10 +6,14 @@ import (
 	"google-vision-filter/src/db"
 	"google-vision-filter/src/utils"
 	"google-vision-filter/src/vision"
-	"log"
+	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
+
+var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
 // Images takes a list of image URIs and returns an HTTP payload
 // with pass/fail status and any errors for each supplied URI.
@@ -67,7 +71,7 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 			}
 		}
 	} else {
-		log.Println("No new images were sent to Vision API")
+		logger.Info().Msg("No new images were sent to Vision API")
 	}
 
 	// Cache the new image filter response entries in the image table.
@@ -82,7 +86,7 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 			Error:      sql.NullString{String: filterRes.Error, Valid: valid},
 			Pass:       filterRes.Pass,
 		})
-		log.Printf("Adding %s to DB cache", filterRes.ImgURI)
+		logger.Info().Msgf("Adding %s to DB cache", filterRes.ImgURI)
 	}
 
 	// Merge the cache response and the response.
