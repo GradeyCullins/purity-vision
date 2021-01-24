@@ -1,14 +1,19 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strconv"
 
-// DefaultDBName is the default name of the database.
-const DefaultDBName = "purity"
-
-// DefaultDBTestName is the default name of the test database.
-const DefaultDBTestName = "purity_test"
+	"github.com/rs/zerolog"
+)
 
 var (
+	// DefaultDBName is the default name of the database.
+	DefaultDBName = "purity"
+
+	// DefaultDBTestName is the default name of the test database.
+	DefaultDBTestName = "purity_test"
+
 	// DefaultPort is the default port to expose the API server.
 	DefaultPort int = 8080
 
@@ -29,6 +34,9 @@ var (
 
 	// DBSSLMode sets the SSL mode of the postgres client.
 	DBSSLMode string = getEnvWithDefault("PURITY_DB_SSL_MODE", "disable")
+
+	// LogLevel is the level of logging for the application.
+	LogLevel string = getEnvWithDefault("PURITY_LOG_LEVEL", strconv.Itoa(int(zerolog.InfoLevel)))
 )
 
 func getEnvWithDefault(name string, def string) string {
