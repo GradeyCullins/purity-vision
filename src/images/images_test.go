@@ -1,7 +1,11 @@
-package db
+package images
 
 import (
+	"database/sql"
+	"fmt"
 	"google-vision-filter/src/config"
+	"google-vision-filter/src/db"
+	"google-vision-filter/src/utils"
 	"log"
 	"os"
 	"testing"
@@ -20,7 +24,7 @@ var imgURIList = []string{
 }
 
 func TestMain(m *testing.M) {
-	conn, err = InitDB(config.DefaultDBTestName)
+	conn, err = db.Init(config.DefaultDBTestName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,9 +34,35 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
+func TestNewImage(t *testing.T) {
+	uri := "https://google.com"
+	time := time.Now()
+	expected := Image{
+		utils.Hash(uri),
+		sql.NullString{},
+		true,
+		time,
+	}
+	img, err := NewImage(uri, fmt.Errorf(""), true, time)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if (expected.ImgURIHash != img.ImgURIHash) ||
+		(expected.Error != img.Error) ||
+		(expected.Pass != img.Pass) ||
+		(expected.DateAdded != img.DateAdded) {
+		t.Fatalf("Expected %v to equal %v", expected, img)
+	}
+}
+
 func TestInsertImage(t *testing.T) {
 	for _, uri := range imgURIList {
-		err = InsertImage(conn, NewImage(uri, "", true, time.Now()))
+		img, err := NewImage(uri, fmt.Errorf(""), true, time.Now())
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = Insert(conn, img)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -42,7 +72,7 @@ func TestInsertImage(t *testing.T) {
 func TestFindImagesByURI(t *testing.T) {
 	smallURIList := imgURIList[:1]
 
-	imgList, err := FindImagesByURI(conn, smallURIList)
+	imgList, err := FindByURI(conn, smallURIList)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -53,7 +83,7 @@ func TestFindImagesByURI(t *testing.T) {
 	}
 
 	smallURIList = []string{}
-	imgList, err = FindImagesByURI(conn, smallURIList)
+	imgList, err = FindByURI(conn, smallURIList)
 	if err == nil {
 		t.Fatal("Expected FindImagesByURI to return an error because imgURIList cannot be empty")
 	}
@@ -61,7 +91,7 @@ func TestFindImagesByURI(t *testing.T) {
 
 func TestDeleteImagesByURI(t *testing.T) {
 	for _, uri := range imgURIList {
-		err = DeleteImageByURI(conn, uri)
+		err = DeleteByURI(conn, uri)
 		if err != nil {
 			t.Fatal(err)
 		}
