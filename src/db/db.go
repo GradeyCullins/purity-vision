@@ -2,11 +2,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"google-vision-filter/src/config"
-	"google-vision-filter/src/utils"
-	"time"
 
 	"github.com/go-pg/pg/v10"
 )
@@ -18,26 +15,8 @@ type User struct {
 	Password string `json:"password"`
 }
 
-// Image represents a pass/fail status of a previously queried img URI.
-type Image struct {
-	ImgURIHash string         `json:"imgURIHash"`
-	Error      sql.NullString `json:"error"`
-	Pass       bool           `json:"pass"`
-	DateAdded  time.Time      `json:"dateAdded"`
-}
-
-// NewImage returns a new Image instance (wow).
-func NewImage(imgURI string, err string, pass bool, dateAdded time.Time) Image {
-	return Image{
-		ImgURIHash: utils.Hash(imgURI),
-		Error:      sql.NullString{String: err, Valid: true},
-		Pass:       pass,
-		DateAdded:  dateAdded,
-	}
-}
-
-// InitDB intializes and returns a postgres database connection.
-func InitDB(dbName string) (*pg.DB, error) {
+// Init intializes and returns a postgres database connection object.
+func Init(dbName string) (*pg.DB, error) {
 	dbHost := config.DBHost
 	dbPort := config.DBPort
 	dbAddr := fmt.Sprintf("%s:%s", dbHost, dbPort)
