@@ -1,4 +1,4 @@
-package db
+package images
 
 import (
 	"fmt"
@@ -17,8 +17,8 @@ var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Wi
 // ImgTableName is the SQL table name for images.
 const ImgTableName = "images"
 
-// FindImagesByURI returns images that have matching URI's.
-func FindImagesByURI(conn *pg.DB, imgURIList []string) ([]Image, error) {
+// FindByURI returns images that have matching URI's.
+func FindByURI(conn *pg.DB, imgURIList []string) ([]Image, error) {
 	var imgList []Image
 
 	if len(imgURIList) == 0 {
@@ -40,9 +40,9 @@ func FindImagesByURI(conn *pg.DB, imgURIList []string) ([]Image, error) {
 	return imgList, nil
 }
 
-// InsertImage inserts the image into the DB.
-func InsertImage(conn *pg.DB, image Image) error {
-	_, err := conn.Model(&image).Insert()
+// Insert inserts the image into the DB.
+func Insert(conn *pg.DB, image *Image) error {
+	_, err := conn.Model(image).Insert()
 	if err != nil {
 		return err
 	}
@@ -51,8 +51,8 @@ func InsertImage(conn *pg.DB, image Image) error {
 	return nil
 }
 
-// DeleteImageByURI deletes the images with matching URI.
-func DeleteImageByURI(conn *pg.DB, uri string) error {
+// DeleteByURI deletes the images with matching URI.
+func DeleteByURI(conn *pg.DB, uri string) error {
 	hash := utils.Hash(uri)
 	img := Image{ImgURIHash: hash}
 

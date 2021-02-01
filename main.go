@@ -26,7 +26,7 @@ func main() {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
-	conn, err := db.InitDB(config.DefaultDBName)
+	conn, err := db.Init(config.DefaultDBName)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
