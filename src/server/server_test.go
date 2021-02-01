@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"google-vision-filter/src/config"
 	"google-vision-filter/src/db"
+	"google-vision-filter/src/images"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -22,7 +23,7 @@ func (s *TestServe) Init(_conn *pg.DB) {
 }
 
 func TestBatchImgFilterHandler(t *testing.T) {
-	conn, err := db.InitDB(config.DefaultDBTestName)
+	conn, err := db.Init(config.DefaultDBTestName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,7 +66,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 	}
 
 	// Delete the img from the DB.
-	if err = db.DeleteImageByURI(conn, uri); err != nil {
+	if err = images.DeleteByURI(conn, uri); err != nil {
 		t.Log(err)
 	}
 }
