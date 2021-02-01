@@ -1,13 +1,14 @@
 package server
 
 import (
-	"database/sql"
+	"errors"
 	"fmt"
-	"google-vision-filter/src/db"
+	"google-vision-filter/src/images"
 	"google-vision-filter/src/utils"
-	"google-vision-filter/src/vision"
 	"os"
+	"time"
 
+	"github.com/GradeyCullins/GoogleVisionFilter/src/vision"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
@@ -15,13 +16,13 @@ import (
 
 var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
-// Images takes a list of image URIs and returns an HTTP payload
-// with pass/fail status and any errors for each supplied URI.
+// filter takes a list of image URIs and returns a response
+// with pass/fail statuses and any errors for each supplied URI.
 func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 	cachedImgFilterList := make([]ImgFilterRes, 0)
 
 	// Images that are cached in DB.
-	dbImgList, err := db.FindImagesByURI(conn, imgURIList)
+	dbImgList, err := images.FindByURI(conn, imgURIList)
 	if err != nil {
 		return nil, err
 	}
@@ -76,16 +77,13 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 
 	// Cache the new image filter response entries in the image table.
 	for _, filterRes := range imgFilterList {
-		valid := false
-		// TODO correct?
-		if filterRes.Error != "" {
-			valid = true
+		img, err := images.NewImage(filterRes.ImgURI, errors.New(filterRes.Error), filterRes.Pass, time.Now())
+		if err != nil {
+			return nil, err
 		}
-		db.InsertImage(conn, db.Image{
-			ImgURIHash: utils.Hash(filterRes.ImgURI),
-			Error:      sql.NullString{String: filterRes.Error, Valid: valid},
-			Pass:       filterRes.Pass,
-		})
+		if err = images.Insert(conn, img); err != nil {
+			return nil, err
+		}
 		logger.Info().Msgf("Adding %s to DB cache", filterRes.ImgURI)
 	}
 
