@@ -20,7 +20,8 @@ var conn *pg.DB
 // BatchImgFilterReq is the form of an incoming JSON payload
 // for retrieving pass/fail status of each supplied image URI.
 type BatchImgFilterReq struct {
-	ImgURIList []string `json:"imgURIList"`
+	ImgURIList     []string `json:"imgURIList"`
+	FilterSettings `json:"filterSettings"`
 }
 
 // ImgFilterRes returns the pass/fail status and any errors for a single image URI.
@@ -76,6 +77,8 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 		writeError(400, "JSON body missing or malformed", w)
 		return
 	}
+
+	logger.Info().Msgf("%v", filterReqPayload.FilterSettings.Adult.Enabled)
 
 	if len(filterReqPayload.ImgURIList) == 0 {
 		writeError(400, "ImgUriList cannot be empty", w)
