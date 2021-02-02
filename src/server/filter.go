@@ -27,25 +27,20 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 		return nil, err
 	}
 
-	// Populate map of uriHashes -> uris to be used in results later.
-	for _, img := range dbImgList {
-		for _, uri := range imgURIList {
-			if img.ImgURIHash == utils.Hash(uri) {
-				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
-			}
-		}
-	}
-
 	imgFilterList := make([]ImgFilterRes, len(imgURIList)-len(dbImgList))
 
-	// Filter out URIs returned from the DB.
+	// Populate map of uriHashes -> uris to be used in results later.
 	for _, img := range dbImgList {
 		for i, uri := range imgURIList {
-			// If the URI is found in the cache response, remove it from the URI list to avoid
-			// redundant Google Vision API request.
 			if img.ImgURIHash == utils.Hash(uri) {
-				imgURIList[i] = imgURIList[len(imgURIList)-1]
-				imgURIList = imgURIList[:len(imgURIList)-1]
+				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
+
+				// If the URI is found in the cache response, remove it from the URI list to avoid
+				// redundant Google Vision API request.
+				imgURIList, err = utils.StringSliceRemove(imgURIList, i)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -67,7 +62,12 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 				imgFilterList[i] = ImgFilterRes{
 					ImgURI: imgURIList[i],
 					Error:  "",
-					Pass:   isImgSafe(res),
+					Pass: isImgSafe(res, &FilterSettings{
+						Adult:    filterCategory{Enabled: true, Likelihood: pb.Likelihood_LIKELY},
+						Medical:  filterCategory{Enabled: true, Likelihood: pb.Likelihood_LIKELY},
+						Violence: filterCategory{Enabled: true, Likelihood: pb.Likelihood_LIKELY},
+						Racy:     filterCategory{Enabled: true, Likelihood: pb.Likelihood_LIKELY},
+					}),
 				}
 			}
 		}
@@ -93,13 +93,42 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 	return &BatchImgFilterRes{ImgFilterResList: imgFilterList}, nil
 }
 
-func isImgSafe(air *pb.AnnotateImageResponse) bool {
+type filterCategory struct {
+	Enabled    bool          `json:"enabled"`
+	Likelihood pb.Likelihood `json:"likelihood"`
+}
+
+// FilterSettings represents user-configurable image filter settings.
+type FilterSettings struct {
+	Adult    filterCategory `json:"adult"`
+	Medical  filterCategory `json:"medical"`
+	Violence filterCategory `json:"violence"`
+	Racy     filterCategory `json:"racy"`
+}
+
+func isImgSafe(air *pb.AnnotateImageResponse, fs *FilterSettings) bool {
 	ssa := air.SafeSearchAnnotation
 
-	// TODO: make the upper and lower bounds of this check configurable.
-	if ssa.Adult >= pb.Likelihood_POSSIBLE || ssa.Racy >= pb.Likelihood_POSSIBLE {
+	if fs.Adult.Enabled && ssa.Adult >= fs.Adult.Likelihood {
 		return false
 	}
+
+	if fs.Medical.Enabled && ssa.Medical >= fs.Medical.Likelihood {
+		return false
+	}
+
+	if fs.Violence.Enabled && ssa.Violence >= fs.Violence.Likelihood {
+		return false
+	}
+
+	if fs.Racy.Enabled && ssa.Racy >= fs.Racy.Likelihood {
+		return false
+	}
+
+	// // TODO: make the upper and lower bounds of this check configurable.
+	// if ssa.Adult >= pb.Likelihood_POSSIBLE || ssa.Racy >= pb.Likelihood_POSSIBLE {
+	// 	return false
+	// }
 
 	return true
 }
