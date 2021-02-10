@@ -4,9 +4,15 @@ import (
 	"context"
 	"fmt"
 	"google-vision-filter/src/config"
+	"os"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-pg/pg/v10"
 )
+
+var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
 // User represents a user in the Purity system.
 type User struct {
@@ -39,10 +45,34 @@ func Init(dbName string) (*pg.DB, error) {
 		Database: dbName,
 	})
 
+	// Print queries to logger if loglevel is set to debug.
+	conn.AddQueryHook(loggerHook{})
+
 	err := conn.Ping(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
 	return conn, nil
+}
+
+type loggerHook struct{}
+
+func (h loggerHook) BeforeQuery(ctx context.Context, evt *pg.QueryEvent) (context.Context, error) {
+	q, err := evt.FormattedQuery()
+	if err != nil {
+		return nil, err
+	}
+
+	if evt.Err != nil {
+		log.Debug().Msgf("%s executing a query:\n%s\n", evt.Err, q)
+	} else {
+		log.Debug().Msg(string(q))
+	}
+
+	return ctx, nil
+}
+
+func (loggerHook) AfterQuery(context.Context, *pg.QueryEvent) error {
+	return nil
 }
