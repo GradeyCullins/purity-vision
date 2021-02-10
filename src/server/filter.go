@@ -5,20 +5,18 @@ import (
 	"fmt"
 	"google-vision-filter/src/images"
 	"google-vision-filter/src/utils"
-	"os"
 	"time"
 
 	"github.com/GradeyCullins/GoogleVisionFilter/src/vision"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
 
-var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
-
 // filter takes a list of image URIs and returns a response
 // with pass/fail statuses and any errors for each supplied URI.
-func filter(imgURIList []string) (*BatchImgFilterRes, error) {
+// func filter(imgURIList []string) (*BatchImgFilterRes, error) {
+func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
+	imgURIList := filterRequest.ImgURIList
+	filterSettings := filterRequest.FilterSettings
 	cachedImgFilterList := make([]ImgFilterRes, 0)
 
 	// Images that are cached in DB.
@@ -62,12 +60,7 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 				imgFilterList[i] = ImgFilterRes{
 					ImgURI: imgURIList[i],
 					Error:  "",
-					Pass: isImgSafe(res, &FilterSettings{
-						Adult:    filterCategory{Enabled: true, Likelihood: pb.Likelihood_LIKELY},
-						Medical:  filterCategory{Enabled: true, Likelihood: pb.Likelihood_LIKELY},
-						Violence: filterCategory{Enabled: true, Likelihood: pb.Likelihood_LIKELY},
-						Racy:     filterCategory{Enabled: true, Likelihood: pb.Likelihood_LIKELY},
-					}),
+					Pass:   isImgSafe(res, &filterSettings),
 				}
 			}
 		}
@@ -93,42 +86,33 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 	return &BatchImgFilterRes{ImgFilterResList: imgFilterList}, nil
 }
 
-type filterCategory struct {
-	Enabled    bool          `json:"enabled"`
-	Likelihood pb.Likelihood `json:"likelihood"`
-}
-
 // FilterSettings represents user-configurable image filter settings.
 type FilterSettings struct {
-	Adult    filterCategory `json:"adult"`
-	Medical  filterCategory `json:"medical"`
-	Violence filterCategory `json:"violence"`
-	Racy     filterCategory `json:"racy"`
+	Adult      bool          `json:"adult"`
+	Medical    bool          `json:"medical"`
+	Violence   bool          `json:"violence"`
+	Racy       bool          `json:"racy"`
+	Likelihood pb.Likelihood `json:"likelihood"` // Not used for now.
 }
 
 func isImgSafe(air *pb.AnnotateImageResponse, fs *FilterSettings) bool {
 	ssa := air.SafeSearchAnnotation
 
-	if fs.Adult.Enabled && ssa.Adult >= fs.Adult.Likelihood {
+	if fs.Adult && ssa.Adult >= pb.Likelihood_LIKELY {
 		return false
 	}
 
-	if fs.Medical.Enabled && ssa.Medical >= fs.Medical.Likelihood {
+	if fs.Medical && ssa.Medical >= pb.Likelihood_LIKELY {
 		return false
 	}
 
-	if fs.Violence.Enabled && ssa.Violence >= fs.Violence.Likelihood {
+	if fs.Violence && ssa.Violence >= pb.Likelihood_LIKELY {
 		return false
 	}
 
-	if fs.Racy.Enabled && ssa.Racy >= fs.Racy.Likelihood {
+	if fs.Racy && ssa.Racy >= pb.Likelihood_LIKELY {
 		return false
 	}
-
-	// // TODO: make the upper and lower bounds of this check configurable.
-	// if ssa.Adult >= pb.Likelihood_POSSIBLE || ssa.Racy >= pb.Likelihood_POSSIBLE {
-	// 	return false
-	// }
 
 	return true
 }
