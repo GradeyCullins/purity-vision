@@ -5,20 +5,18 @@ import (
 	"fmt"
 	"google-vision-filter/src/images"
 	"google-vision-filter/src/utils"
-	"os"
 	"time"
 
 	"github.com/GradeyCullins/GoogleVisionFilter/src/vision"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
 
-var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
-
 // filter takes a list of image URIs and returns a response
 // with pass/fail statuses and any errors for each supplied URI.
-func filter(imgURIList []string) (*BatchImgFilterRes, error) {
+// func filter(imgURIList []string) (*BatchImgFilterRes, error) {
+func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
+	imgURIList := filterRequest.ImgURIList
+	filterSettings := filterRequest.FilterSettings
 	cachedImgFilterList := make([]ImgFilterRes, 0)
 
 	// Images that are cached in DB.
@@ -27,25 +25,20 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 		return nil, err
 	}
 
-	// Populate map of uriHashes -> uris to be used in results later.
-	for _, img := range dbImgList {
-		for _, uri := range imgURIList {
-			if img.ImgURIHash == utils.Hash(uri) {
-				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
-			}
-		}
-	}
-
 	imgFilterList := make([]ImgFilterRes, len(imgURIList)-len(dbImgList))
 
-	// Filter out URIs returned from the DB.
+	// Populate map of uriHashes -> uris to be used in results later.
 	for _, img := range dbImgList {
 		for i, uri := range imgURIList {
-			// If the URI is found in the cache response, remove it from the URI list to avoid
-			// redundant Google Vision API request.
 			if img.ImgURIHash == utils.Hash(uri) {
-				imgURIList[i] = imgURIList[len(imgURIList)-1]
-				imgURIList = imgURIList[:len(imgURIList)-1]
+				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
+
+				// If the URI is found in the cache response, remove it from the URI list to avoid
+				// redundant Google Vision API request.
+				imgURIList, err = utils.StringSliceRemove(imgURIList, i)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -67,7 +60,7 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 				imgFilterList[i] = ImgFilterRes{
 					ImgURI: imgURIList[i],
 					Error:  "",
-					Pass:   isImgSafe(res),
+					Pass:   isImgSafe(res, &filterSettings),
 				}
 			}
 		}
@@ -93,11 +86,31 @@ func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 	return &BatchImgFilterRes{ImgFilterResList: imgFilterList}, nil
 }
 
-func isImgSafe(air *pb.AnnotateImageResponse) bool {
+// FilterSettings represents user-configurable image filter settings.
+type FilterSettings struct {
+	Adult      bool          `json:"adult"`
+	Medical    bool          `json:"medical"`
+	Violence   bool          `json:"violence"`
+	Racy       bool          `json:"racy"`
+	Likelihood pb.Likelihood `json:"likelihood"` // Not used for now.
+}
+
+func isImgSafe(air *pb.AnnotateImageResponse, fs *FilterSettings) bool {
 	ssa := air.SafeSearchAnnotation
 
-	// TODO: make the upper and lower bounds of this check configurable.
-	if ssa.Adult >= pb.Likelihood_POSSIBLE || ssa.Racy >= pb.Likelihood_POSSIBLE {
+	if fs.Adult && ssa.Adult >= pb.Likelihood_LIKELY {
+		return false
+	}
+
+	if fs.Medical && ssa.Medical >= pb.Likelihood_LIKELY {
+		return false
+	}
+
+	if fs.Violence && ssa.Violence >= pb.Likelihood_LIKELY {
+		return false
+	}
+
+	if fs.Racy && ssa.Racy >= pb.Likelihood_LIKELY {
 		return false
 	}
 
