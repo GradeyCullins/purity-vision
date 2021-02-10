@@ -87,8 +87,6 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	logger.Info().Msgf("%v", filterReqPayload.FilterSettings)
-
 	if len(filterReqPayload.ImgURIList) == 0 {
 		writeError(400, "ImgUriList cannot be empty", w)
 		return
