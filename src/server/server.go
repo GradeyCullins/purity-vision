@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/go-pg/pg/v10"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,6 +18,8 @@ var listenAddr string = "127.0.0.1"
 
 // Store the db connection passed from main.go.
 var conn *pg.DB
+
+var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
 // BatchImgFilterReq is the form of an incoming JSON payload
 // for retrieving pass/fail status of each supplied image URI.
@@ -40,6 +44,11 @@ type ImgFilterRes struct {
 // supplied image URI.
 type BatchImgFilterRes struct {
 	ImgFilterResList []ImgFilterRes `json:"imgFilterResList"`
+}
+
+// ErrorRes is a JSON response containing an error message from the API.
+type ErrorRes struct {
+	Message string `json:"message"`
 }
 
 // Server defines the actions of a Purity API Web Server.
@@ -78,7 +87,7 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	logger.Info().Msgf("%v", filterReqPayload.FilterSettings.Adult.Enabled)
+	logger.Info().Msgf("%v", filterReqPayload.FilterSettings)
 
 	if len(filterReqPayload.ImgURIList) == 0 {
 		writeError(400, "ImgUriList cannot be empty", w)
@@ -93,7 +102,7 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	res, err := filter(filterReqPayload.ImgURIList)
+	res, err := filter(filterReqPayload)
 	if err != nil {
 		log.Error().Err(err).Msg("")
 		writeError(500, "Something went wrong", w)
@@ -105,6 +114,11 @@ var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
 }
 
 func writeError(code int, message string, w http.ResponseWriter) {
+	logger.Info().Msg(message)
 	w.WriteHeader(code)
-	w.Write([]byte(message))
+	err := ErrorRes{
+		Message: message,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(err)
 }
