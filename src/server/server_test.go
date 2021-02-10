@@ -37,11 +37,18 @@ func TestBatchImgFilterHandler(t *testing.T) {
 		ImgURIList: []string{},
 	}
 
+	var errRes ErrorRes
 	res, err := testBatchImgFilterHandler(fr)
 	if err != nil {
-
+		t.Error("Shouldn't have thrown an error")
 	}
-	if res.Code != 400 || res.Body.String() != "ImgUriList cannot be empty" {
+
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&errRes); err != nil {
+		t.Error("JSON body missing or malformed")
+	}
+
+	if res.Code != 400 || errRes.Message != "ImgUriList cannot be empty" {
 		t.Error("Web server should have returned a 400 because the ImgURIList was empty")
 	}
 
