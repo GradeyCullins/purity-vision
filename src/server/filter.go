@@ -11,6 +11,19 @@ import (
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
 
+// FilterSettings represents user-configurable image filter settings.
+type FilterSettings struct {
+	Adult      bool          `json:"adult"`
+	Medical    bool          `json:"medical"`
+	Violence   bool          `json:"violence"`
+	Racy       bool          `json:"racy"`
+	Likelihood pb.Likelihood `json:"likelihood"` // Not used for now.
+}
+
+func (fs *FilterSettings) IsEmpty() bool {
+	return !fs.Adult && !fs.Medical && !fs.Violence && !fs.Racy
+}
+
 // filter takes a list of image URIs and returns a response
 // with pass/fail statuses and any errors for each supplied URI.
 // func filter(imgURIList []string) (*BatchImgFilterRes, error) {
@@ -86,17 +99,18 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 	return &BatchImgFilterRes{ImgFilterResList: imgFilterList}, nil
 }
 
-// FilterSettings represents user-configurable image filter settings.
-type FilterSettings struct {
-	Adult      bool          `json:"adult"`
-	Medical    bool          `json:"medical"`
-	Violence   bool          `json:"violence"`
-	Racy       bool          `json:"racy"`
-	Likelihood pb.Likelihood `json:"likelihood"` // Not used for now.
-}
-
 func isImgSafe(air *pb.AnnotateImageResponse, fs *FilterSettings) bool {
 	ssa := air.SafeSearchAnnotation
+
+	// Enable all the filter rules if the filter settings are empty.
+	if fs.IsEmpty() {
+		fs = &FilterSettings{
+			Adult:    true,
+			Violence: true,
+			Racy:     true,
+			Medical:  true,
+		}
+	}
 
 	if fs.Adult && ssa.Adult >= pb.Likelihood_LIKELY {
 		return false
