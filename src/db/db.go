@@ -3,8 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
-	"google-vision-filter/src/config"
 	"os"
+	"purity-vision-filter/src/config"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

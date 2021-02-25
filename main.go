@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"google-vision-filter/src/config"
-	"google-vision-filter/src/db"
-	"google-vision-filter/src/server"
 	"os"
+	"purity-vision-filter/src/config"
+	"purity-vision-filter/src/db"
+	"purity-vision-filter/src/server"
 	"strconv"
 
 	"github.com/rs/zerolog"
