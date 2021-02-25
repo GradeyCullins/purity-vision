@@ -45,7 +45,7 @@ func Init(dbName string) (*pg.DB, error) {
 		Database: dbName,
 	})
 
-	// Print queries to logger if loglevel is set to debug.
+	// Print SQL queries to logger if loglevel is set to debug.
 	conn.AddQueryHook(loggerHook{})
 
 	err := conn.Ping(context.Background())
