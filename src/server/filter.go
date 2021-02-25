@@ -3,11 +3,11 @@ package server
 import (
 	"errors"
 	"fmt"
-	"google-vision-filter/src/images"
-	"google-vision-filter/src/utils"
+	"purity-vision-filter/src/images"
+	"purity-vision-filter/src/utils"
+	"purity-vision-filter/src/vision"
 	"time"
 
-	"github.com/GradeyCullins/GoogleVisionFilter/src/vision"
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
 

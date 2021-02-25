@@ -1,4 +1,4 @@
-module google-vision-filter
+module purity-vision-filter
 
 go 1.13
 
