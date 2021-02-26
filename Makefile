@@ -1,4 +1,5 @@
-db_running=$(docker ps)
+run: build database
+	./purity-vision-filter
 
 build:
 	go build
@@ -6,10 +7,11 @@ build:
 database:
 	./start-db.sh
 
-run: build database
-	./purity-vision-filter
-
 test:
 	go test ./...
 
-.PHONY: build
+clean:
+	rm purity-vision-filter
+	docker stop purity-pg
+
+.PHONY: build clean
