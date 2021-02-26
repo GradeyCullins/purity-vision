@@ -2,8 +2,8 @@ package images
 
 import (
 	"fmt"
-	"google-vision-filter/src/utils"
 	"os"
+	"purity-vision-filter/src/utils"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/rs/zerolog"

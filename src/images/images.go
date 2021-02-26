@@ -2,8 +2,8 @@ package images
 
 import (
 	"database/sql"
-	"google-vision-filter/src/utils"
 	"net/url"
+	"purity-vision-filter/src/utils"
 	"time"
 )
 
