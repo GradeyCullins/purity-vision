@@ -3,11 +3,11 @@ package images
 import (
 	"database/sql"
 	"fmt"
-	"google-vision-filter/src/config"
-	"google-vision-filter/src/db"
-	"google-vision-filter/src/utils"
 	"log"
 	"os"
+	"purity-vision-filter/src/config"
+	"purity-vision-filter/src/db"
+	"purity-vision-filter/src/utils"
 	"testing"
 	"time"
 

@@ -37,9 +37,9 @@ With golang installed and Docker running, start the the database with the `start
 ```
 
 ### API Server
-Run the API server with: 
+Run the API server with Make:
 ```bash 
-go run ./main.go
+make
 ```
 #### Example
 Use curl to hit the *filter* endpoint:
