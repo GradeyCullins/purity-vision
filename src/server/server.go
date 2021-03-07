@@ -70,45 +70,64 @@ func (s *Serve) Init(port int, _conn *pg.DB) {
 	// Store the database connection in a global var.
 	conn = _conn
 
-	// Add endpoint handlers.
-	http.HandleFunc("/filter", batchImgFilterHandler)
+	// Define handlers.
+	batchFilterHandler := http.HandlerFunc(batchFilter)
+
+	// Create a multiplexer.
+	mux := http.NewServeMux()
+	mux.Handle("/filter", addCorsHeaders(batchFilterHandler))
 
 	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
 	log.Info().Msgf("Web server now listening on %s", listenAddr)
-	log.Fatal().Msg(http.ListenAndServe(listenAddr, nil).Error())
+	log.Fatal().Msg(http.ListenAndServe(listenAddr, mux).Error())
 }
 
-var batchImgFilterHandler = func(w http.ResponseWriter, req *http.Request) {
-	var filterReqPayload BatchImgFilterReq
+var addCorsHeaders = func(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		allowedHeaders := "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, X-CSRF-Token"
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
+		w.Header().Set("Access-Control-Expose-Headers", "Authorization")
+		next.ServeHTTP(w, r)
+	})
+}
 
-	decoder := json.NewDecoder(req.Body)
-	if err := decoder.Decode(&filterReqPayload); err != nil {
-		writeError(400, "JSON body missing or malformed", w)
-		return
-	}
+func batchFilter(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "POST":
+		var filterReqPayload BatchImgFilterReq
 
-	if len(filterReqPayload.ImgURIList) == 0 {
-		writeError(400, "ImgUriList cannot be empty", w)
-		return
-	}
-
-	// Validate the request payload URIs
-	for _, uri := range filterReqPayload.ImgURIList {
-		if _, err := url.ParseRequestURI(uri); err != nil {
-			writeError(400, fmt.Sprintf("%s is not a valid URI\n", uri), w)
+		decoder := json.NewDecoder(req.Body)
+		if err := decoder.Decode(&filterReqPayload); err != nil {
+			writeError(400, "JSON body missing or malformed", w)
 			return
 		}
-	}
 
-	res, err := filter(filterReqPayload)
-	if err != nil {
-		log.Error().Err(err).Msg("")
-		writeError(500, "Something went wrong", w)
-		return
-	}
+		if len(filterReqPayload.ImgURIList) == 0 {
+			writeError(400, "ImgUriList cannot be empty", w)
+			return
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(res)
+		// Validate the request payload URIs
+		for _, uri := range filterReqPayload.ImgURIList {
+			if _, err := url.ParseRequestURI(uri); err != nil {
+				writeError(400, fmt.Sprintf("%s is not a valid URI\n", uri), w)
+				return
+			}
+		}
+
+		res, err := filter(filterReqPayload)
+		if err != nil {
+			log.Error().Err(err).Msg("")
+			writeError(500, "Something went wrong", w)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(res)
+	}
 }
 
 func writeError(code int, message string, w http.ResponseWriter) {
