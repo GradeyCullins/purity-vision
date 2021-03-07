@@ -39,10 +39,13 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 	}
 
 	imgFilterList := make([]ImgFilterRes, len(imgURIList)-len(dbImgList))
+	size := len(imgURIList)
 
 	// Populate map of uriHashes -> uris to be used in results later.
 	for _, img := range dbImgList {
-		for i, uri := range imgURIList {
+		//for _, uri := range imgURIList {
+		for i := 0; i < size; i++ {
+			uri := imgURIList[i]
 			if img.ImgURIHash == utils.Hash(uri) {
 				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
 
@@ -52,6 +55,7 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 				if err != nil {
 					return nil, err
 				}
+				size -= 1
 			}
 		}
 	}
