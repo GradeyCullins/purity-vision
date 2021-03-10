@@ -92,7 +92,7 @@ func testBatchImgFilterHandler(fr BatchImgFilterReq) (*httptest.ResponseRecorder
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(batchImgFilterHandler)
+	handler := http.HandlerFunc(batchFilter)
 
 	handler.ServeHTTP(rr, req)
 

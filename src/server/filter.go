@@ -82,7 +82,7 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 			}
 		}
 	} else {
-		logger.Info().Msg("No new images were sent to Vision API")
+		logger.Debug().Msg("No new images were sent to Vision API")
 	}
 
 	// Cache the new image filter response entries in the image table.
@@ -94,7 +94,7 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 		if err = images.Insert(conn, img); err != nil {
 			return nil, err
 		}
-		logger.Info().Msgf("Adding %s to DB cache", filterRes.ImgURI)
+		logger.Debug().Msgf("Adding %s to DB cache", filterRes.ImgURI)
 	}
 
 	// Merge the cache response and the response.

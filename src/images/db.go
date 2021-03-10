@@ -10,8 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
-// var logger zerolog.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
 // ImgTableName is the SQL table name for images.
@@ -34,8 +32,10 @@ func FindByURI(conn *pg.DB, imgURIList []string) ([]Image, error) {
 	conn.Model(&imgList).Where("img_uri_hash IN (?)", pg.In(uriHashList)).Select()
 
 	for _, img := range imgList {
-		logger.Info().Msgf("Found cached image: %s...", img.ImgURIHash[:8])
+		logger.Debug().Msgf("Found cached image: %s...", img.ImgURIHash[:8])
 	}
+
+	logger.Debug().Msgf("Found %d/%d cached images", len(imgList), len(imgURIList))
 
 	return imgList, nil
 }
@@ -46,7 +46,7 @@ func Insert(conn *pg.DB, image *Image) error {
 	if err != nil {
 		return err
 	}
-	logger.Info().Msgf("inserted image: %s", image.ImgURIHash)
+	logger.Debug().Msgf("inserted image: %s", image.ImgURIHash)
 
 	return nil
 }
