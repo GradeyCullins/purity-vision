@@ -15,11 +15,11 @@ ALTER TABLE public.users
 
 CREATE TABLE public.images
 (
-    img_uri_hash text NOT NULL,
+    img_hash text NOT NULL,
     error text,
     pass boolean NOT NULL default false,
     date_added timestamp NOT NULL default CURRENT_TIMESTAMP,
-    PRIMARY KEY (img_uri_hash)
+    PRIMARY KEY (img_hash)
 );
 
 ALTER TABLE public.images
