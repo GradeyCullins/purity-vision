@@ -29,13 +29,13 @@ func FindByURI(conn *pg.DB, imgURIList []string) ([]Image, error) {
 		uriHashList = append(uriHashList, utils.Hash(uri))
 	}
 
-	conn.Model(&imgList).Where("img_uri_hash IN (?)", pg.In(uriHashList)).Select()
+	conn.Model(&imgList).Where("uri IN (?)", pg.In(imgURIList)).Select()
 
 	for _, img := range imgList {
-		logger.Debug().Msgf("Found cached image: %s...", img.ImgURIHash[:8])
+		logger.Debug().Msgf("Found cached image: %s...", img.URI)
 	}
 
-	logger.Debug().Msgf("Found %d/%d cached images", len(imgList), len(imgURIList))
+	logger.Debug().Msgf("Cached %d/%d images", len(imgList), len(imgURIList))
 
 	return imgList, nil
 }
@@ -46,17 +46,16 @@ func Insert(conn *pg.DB, image *Image) error {
 	if err != nil {
 		return err
 	}
-	logger.Debug().Msgf("inserted image: %s", image.ImgURIHash)
+	logger.Debug().Msgf("inserted image: %s", image.URI)
 
 	return nil
 }
 
 // DeleteByURI deletes the images with matching URI.
 func DeleteByURI(conn *pg.DB, uri string) error {
-	hash := utils.Hash(uri)
-	img := Image{ImgURIHash: hash}
+	img := Image{URI: uri}
 
-	if _, err := conn.Model(&img).Where("img_uri_hash = ?", hash).Delete(); err != nil {
+	if _, err := conn.Model(&img).Where("uri = ?", uri).Delete(); err != nil {
 		return err
 	}
 

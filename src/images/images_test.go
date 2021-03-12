@@ -37,18 +37,20 @@ func TestMain(m *testing.M) {
 func TestNewImage(t *testing.T) {
 	uri := "https://google.com"
 	time := time.Now()
+	fakeHash := utils.Hash("some string")
 	expected := Image{
-		utils.Hash(uri),
+		fakeHash,
+		uri,
 		sql.NullString{},
 		true,
 		time,
 	}
-	img, err := NewImage(uri, fmt.Errorf(""), true, time)
+	img, err := NewImage(fakeHash, uri, fmt.Errorf(""), true, time)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if (expected.ImgURIHash != img.ImgURIHash) ||
+	if (expected.Hash != img.Hash) ||
 		(expected.Error != img.Error) ||
 		(expected.Pass != img.Pass) ||
 		(expected.DateAdded != img.DateAdded) {
@@ -58,7 +60,8 @@ func TestNewImage(t *testing.T) {
 
 func TestInsertImage(t *testing.T) {
 	for _, uri := range imgURIList {
-		img, err := NewImage(uri, fmt.Errorf(""), true, time.Now())
+		fakeHash := utils.Hash(uri)
+		img, err := NewImage(fakeHash, uri, fmt.Errorf(""), true, time.Now())
 		if err != nil {
 			t.Fatal(err)
 		}

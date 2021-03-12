@@ -9,13 +9,16 @@ import (
 	pb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
 
+type BatchAnnotateResponse map[string]*pb.AnnotateImageResponse
+
 // GetImgAnnotations sends a batch request to the Google Vision API to retrieve tags and likelihood values
 // for the URI list in the batch request.
-func GetImgAnnotations(imgURIs []string) (*pb.BatchAnnotateImagesResponse, error) {
-	if len(imgURIs) == 0 {
+func GetImgAnnotations(contentURIMap map[string]string) (BatchAnnotateResponse, error) {
+	if len(contentURIMap) == 0 {
 		return nil, nil
 	}
 
+	res := make(BatchAnnotateResponse, 0)
 	ctx := context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(ctx)
@@ -24,30 +27,33 @@ func GetImgAnnotations(imgURIs []string) (*pb.BatchAnnotateImagesResponse, error
 	}
 	defer client.Close()
 
-	var annotateReqs []*pb.AnnotateImageRequest
-
 	// Loop over the files and create annotate requests.
-	for _, uri := range imgURIs {
-		image := vision.NewImageFromURI(uri)
-		annotateReqs = append(annotateReqs, &pb.AnnotateImageRequest{
+	for uri, path := range contentURIMap {
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		image, err := vision.NewImageFromReader(f)
+		if err != nil {
+			return nil, err
+		}
+
+		req := &pb.AnnotateImageRequest{
 			Image: image,
 			Features: []*pb.Feature{
 				{Type: pb.Feature_SAFE_SEARCH_DETECTION, MaxResults: 5},
 			},
-		})
+		}
 
+		res[uri], err = client.AnnotateImage(ctx, req)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	req := &pb.BatchAnnotateImagesRequest{
-		Requests: annotateReqs,
-	}
-
-	resp, err := client.BatchAnnotateImages(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return res, nil
 }
 
 func passSafeSearch(file string) error {

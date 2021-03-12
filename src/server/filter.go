@@ -1,8 +1,12 @@
 package server
 
 import (
+	"bufio"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"purity-vision-filter/src/images"
 	"purity-vision-filter/src/utils"
 	"purity-vision-filter/src/vision"
@@ -24,12 +28,25 @@ func (fs *FilterSettings) IsEmpty() bool {
 	return !fs.Adult && !fs.Medical && !fs.Violence && !fs.Racy
 }
 
+// const MAX_IMAGES_PER_REQUEST = 16
+
 // filter takes a list of image URIs and returns a response
 // with pass/fail statuses and any errors for each supplied URI.
 // func filter(imgURIList []string) (*BatchImgFilterRes, error) {
 func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
+	//TODO: cleanup this function
+
+	// TODO: if filterRequest.ImgURIList is longer than 16, page the request.
+	// num pages = len(imgURIList) / 16 rounded up to the nearest int
+	// pageCount := int(math.Ceil(float64(len(filterRequest.ImgURIList)) / MAX_IMAGES_PER_REQUEST))
+	// for pageNum := 0; pageNum < pageCount; pageNum++ {
+	// }
+
 	imgURIList := filterRequest.ImgURIList
+	uriPathMap := make(map[string]string, len(imgURIList)) // Map URI to image file path on disk to be fed to Vision API.
+	uriHashMap := make(map[string]string, len(imgURIList))
 	filterSettings := filterRequest.FilterSettings
+	imgResList := make(BatchImgFilterRes, 0)
 	cachedImgFilterList := make([]ImgFilterRes, 0)
 
 	// Images that are cached in DB.
@@ -38,16 +55,15 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 		return nil, err
 	}
 
-	imgFilterList := make([]ImgFilterRes, len(imgURIList)-len(dbImgList))
 	size := len(imgURIList)
 
 	// Populate map of uriHashes -> uris to be used in results later.
 	for _, img := range dbImgList {
-		//for _, uri := range imgURIList {
 		for i := 0; i < size; i++ {
 			uri := imgURIList[i]
-			if img.ImgURIHash == utils.Hash(uri) {
+			if img.URI == uri {
 				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
+				delete(uriPathMap, uri)
 
 				// If the URI is found in the cache response, remove it from the URI list to avoid
 				// redundant Google Vision API request.
@@ -60,25 +76,52 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 		}
 	}
 
+	for _, uri := range imgURIList {
+		path, err := utils.Download(uri)
+		if err != nil {
+			return nil, err
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		r := bufio.NewReader(f)
+		content, err := ioutil.ReadAll(r)
+		if err != nil {
+			return nil, err
+		}
+		uriHashMap[uri] = utils.Hash(base64.StdEncoding.EncodeToString(content))
+		uriPathMap[uri] = f.Name()
+	}
+
+	// Delete image files.
+	defer func() {
+		for _, path := range uriPathMap {
+			os.Remove(path)
+		}
+	}()
+
 	if len(imgURIList) > 0 {
-		imgAnnotationsRes, err := vision.GetImgAnnotations(imgURIList)
+		imgAnnotationsRes, err := vision.GetImgAnnotations(uriPathMap)
 		if err != nil {
 			return nil, err
 		}
 
-		for i, res := range imgAnnotationsRes.Responses {
+		for uri, res := range imgAnnotationsRes {
 			if res.Error != nil {
-				imgFilterList[i] = ImgFilterRes{
-					ImgURI: imgURIList[i],
-					Error:  fmt.Sprintf("Failed to annotate image: %s with error: %s", imgURIList[i], res.Error),
+				imgResList = append(imgResList, ImgFilterRes{
+					ImgURI: uri,
+					Error:  fmt.Sprintf("Failed to annotate image: %s with error: %s", uri, res.Error),
 					Pass:   false,
-				}
+				})
 			} else {
-				imgFilterList[i] = ImgFilterRes{
-					ImgURI: imgURIList[i],
+				imgResList = append(imgResList, ImgFilterRes{
+					ImgURI: uri,
 					Error:  "",
-					Pass:   isImgSafe(res, &filterSettings),
-				}
+					Pass:   isImgSafe(res, filterSettings),
+				})
 			}
 		}
 	} else {
@@ -86,8 +129,13 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 	}
 
 	// Cache the new image filter response entries in the image table.
-	for _, filterRes := range imgFilterList {
-		img, err := images.NewImage(filterRes.ImgURI, errors.New(filterRes.Error), filterRes.Pass, time.Now())
+	for _, filterRes := range imgResList {
+		img, err := images.NewImage(
+			uriHashMap[filterRes.ImgURI],
+			filterRes.ImgURI,
+			errors.New(filterRes.Error),
+			filterRes.Pass, time.Now(),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -98,17 +146,17 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 	}
 
 	// Merge the cache response and the response.
-	imgFilterList = append(imgFilterList, cachedImgFilterList...)
+	imgResList = append(imgResList, cachedImgFilterList...)
 
-	return &BatchImgFilterRes{ImgFilterResList: imgFilterList}, nil
+	return &imgResList, nil
 }
 
-func isImgSafe(air *pb.AnnotateImageResponse, fs *FilterSettings) bool {
+func isImgSafe(air *pb.AnnotateImageResponse, fs FilterSettings) bool {
 	ssa := air.SafeSearchAnnotation
 
 	// Enable all the filter rules if the filter settings are empty.
 	if fs.IsEmpty() {
-		fs = &FilterSettings{
+		fs = FilterSettings{
 			Adult:    true,
 			Violence: true,
 			Racy:     true,

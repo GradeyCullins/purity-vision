@@ -64,11 +64,9 @@ func TestBatchImgFilterHandler(t *testing.T) {
 		t.Error("Web server should have returned a 200")
 	}
 	var fRes BatchImgFilterRes
-	fRes = BatchImgFilterRes{
-		ImgFilterResList: []ImgFilterRes{},
-	}
+	fRes = []ImgFilterRes{}
 	json.Unmarshal(res.Body.Bytes(), &fRes)
-	if len(fRes.ImgFilterResList) != 1 || fRes.ImgFilterResList[0].Pass != true {
+	if len(fRes) != 1 || fRes[0].Pass != true {
 		t.Error("Handler didn't return the right results")
 	}
 

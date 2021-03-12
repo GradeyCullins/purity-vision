@@ -15,11 +15,12 @@ ALTER TABLE public.users
 
 CREATE TABLE public.images
 (
-    img_uri_hash text NOT NULL,
+    hash text NOT NULL, -- Hash of the b64 content encoding.
+    uri text NOT NULL,
     error text,
     pass boolean NOT NULL default false,
     date_added timestamp NOT NULL default CURRENT_TIMESTAMP,
-    PRIMARY KEY (img_uri_hash)
+    PRIMARY KEY (hash)
 );
 
 ALTER TABLE public.images

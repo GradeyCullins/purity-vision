@@ -42,9 +42,7 @@ type ImgFilterRes struct {
 
 // BatchImgFilterRes represents a list of pass/fail statuses and any errors for each
 // supplied image URI.
-type BatchImgFilterRes struct {
-	ImgFilterResList []ImgFilterRes `json:"imgFilterResList"`
-}
+type BatchImgFilterRes []ImgFilterRes
 
 // ErrorRes is a JSON response containing an error message from the API.
 type ErrorRes struct {
