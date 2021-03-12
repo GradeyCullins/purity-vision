@@ -11,8 +11,8 @@ import (
 
 // GetImgAnnotations sends a batch request to the Google Vision API to retrieve tags and likelihood values
 // for the URI list in the batch request.
-func GetImgAnnotations(imgURIs []string) (*pb.BatchAnnotateImagesResponse, error) {
-	if len(imgURIs) == 0 {
+func GetImgAnnotations(contentURIMap map[string]string) (*pb.BatchAnnotateImagesResponse, error) {
+	if len(contentURIMap) == 0 {
 		return nil, nil
 	}
 
@@ -27,8 +27,17 @@ func GetImgAnnotations(imgURIs []string) (*pb.BatchAnnotateImagesResponse, error
 	var annotateReqs []*pb.AnnotateImageRequest
 
 	// Loop over the files and create annotate requests.
-	for _, uri := range imgURIs {
-		image := vision.NewImageFromURI(uri)
+	for _, path := range contentURIMap {
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		image, err := vision.NewImageFromReader(f)
+		if err != nil {
+			return nil, err
+		}
 		annotateReqs = append(annotateReqs, &pb.AnnotateImageRequest{
 			Image: image,
 			Features: []*pb.Feature{
