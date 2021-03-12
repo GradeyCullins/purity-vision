@@ -46,7 +46,35 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 	uriPathMap := make(map[string]string, len(imgURIList)) // Map URI to image file path on disk to be fed to Vision API.
 	uriHashMap := make(map[string]string, len(imgURIList))
 	filterSettings := filterRequest.FilterSettings
+	imgResList := make(BatchImgFilterRes, 0)
 	cachedImgFilterList := make([]ImgFilterRes, 0)
+
+	// Images that are cached in DB.
+	dbImgList, err := images.FindByURI(conn, imgURIList)
+	if err != nil {
+		return nil, err
+	}
+
+	size := len(imgURIList)
+
+	// Populate map of uriHashes -> uris to be used in results later.
+	for _, img := range dbImgList {
+		for i := 0; i < size; i++ {
+			uri := imgURIList[i]
+			if img.URI == uri {
+				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
+				delete(uriPathMap, uri)
+
+				// If the URI is found in the cache response, remove it from the URI list to avoid
+				// redundant Google Vision API request.
+				imgURIList, err = utils.StringSliceRemove(imgURIList, i)
+				if err != nil {
+					return nil, err
+				}
+				size -= 1
+			}
+		}
+	}
 
 	for _, uri := range imgURIList {
 		path, err := utils.Download(uri)
@@ -75,52 +103,25 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 		}
 	}()
 
-	// Images that are cached in DB.
-	dbImgList, err := images.FindByURI(conn, imgURIList)
-	if err != nil {
-		return nil, err
-	}
-
-	imgFilterList := make(BatchImgFilterRes, len(imgURIList)-len(dbImgList))
-	size := len(imgURIList)
-
-	// Populate map of uriHashes -> uris to be used in results later.
-	for _, img := range dbImgList {
-		for i := 0; i < size; i++ {
-			uri := imgURIList[i]
-			if img.URI == uri {
-				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
-
-				// If the URI is found in the cache response, remove it from the URI list to avoid
-				// redundant Google Vision API request.
-				imgURIList, err = utils.StringSliceRemove(imgURIList, i)
-				if err != nil {
-					return nil, err
-				}
-				size -= 1
-			}
-		}
-	}
-
 	if len(imgURIList) > 0 {
 		imgAnnotationsRes, err := vision.GetImgAnnotations(uriPathMap)
 		if err != nil {
 			return nil, err
 		}
 
-		for i, res := range imgAnnotationsRes.Responses {
+		for uri, res := range imgAnnotationsRes {
 			if res.Error != nil {
-				imgFilterList[i] = ImgFilterRes{
-					ImgURI: imgURIList[i],
-					Error:  fmt.Sprintf("Failed to annotate image: %s with error: %s", imgURIList[i], res.Error),
+				imgResList = append(imgResList, ImgFilterRes{
+					ImgURI: uri,
+					Error:  fmt.Sprintf("Failed to annotate image: %s with error: %s", uri, res.Error),
 					Pass:   false,
-				}
+				})
 			} else {
-				imgFilterList[i] = ImgFilterRes{
-					ImgURI: imgURIList[i],
+				imgResList = append(imgResList, ImgFilterRes{
+					ImgURI: uri,
 					Error:  "",
-					Pass:   isImgSafe(res, &filterSettings),
-				}
+					Pass:   isImgSafe(res, filterSettings),
+				})
 			}
 		}
 	} else {
@@ -128,7 +129,7 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 	}
 
 	// Cache the new image filter response entries in the image table.
-	for _, filterRes := range imgFilterList {
+	for _, filterRes := range imgResList {
 		img, err := images.NewImage(
 			uriHashMap[filterRes.ImgURI],
 			filterRes.ImgURI,
@@ -145,17 +146,17 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 	}
 
 	// Merge the cache response and the response.
-	imgFilterList = append(imgFilterList, cachedImgFilterList...)
+	imgResList = append(imgResList, cachedImgFilterList...)
 
-	return &imgFilterList, nil
+	return &imgResList, nil
 }
 
-func isImgSafe(air *pb.AnnotateImageResponse, fs *FilterSettings) bool {
+func isImgSafe(air *pb.AnnotateImageResponse, fs FilterSettings) bool {
 	ssa := air.SafeSearchAnnotation
 
 	// Enable all the filter rules if the filter settings are empty.
 	if fs.IsEmpty() {
-		fs = &FilterSettings{
+		fs = FilterSettings{
 			Adult:    true,
 			Violence: true,
 			Racy:     true,
