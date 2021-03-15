@@ -1,0 +1,40 @@
+version: "3.7"
+services:
+  web:
+    image: purity-vision:latest
+    build: .
+    command: bash -c 'while !</dev/tcp/postgres/5432; do sleep 1; done; ./purity-vision-filter -port 8080'
+    ports:
+      - "8080:8080"
+    environment:
+      - PURITY_DB_HOST=postgres
+      - PURITY_DB_PORT=5432
+      - PURITY_DB_NAME=purity
+      - PURITY_DB_USER=postgres
+      - PURITY_DB_PASS=eGGQATPkx8JA66
+      - PURITY_DB_SSL_MODE=disable
+      - GOOGLE_APPLICATION_CREDENTIALS="/home/gb/Repositories/purity-vision/creds.json"
+      - PROJECT_ROOT="/home/gb/Repositories/purity-vision"
+      - PURITY_LOG_LEVEL=0
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - PROJECT_ROOT="/home/gb/Repositories/purity-vision"
+      - POSTGRES_DB="purity"
+      - POSTGRES_PASSWORD="eGGQATPkx8JA66"
+    volumes:
+      - "/pg-docker-data:/var/lib/postgresql/data"
+      - "${PROJECT_ROOT}/build:/docker-entrypoint-initdb.d"
+
+      
+#-p "${PURITY_DB_PORT}":5432 \
+#-e POSTGRES_DB="${PURITY_DB_NAME}" \
+#-e POSTGRES_PASSWORD="${PURITY_DB_PASS}" \
+#-v /pg-docker-data:/var/lib/postgresql/data \
+#-v "${PROJECT_ROOT}/build":/docker-entrypoint-initdb.d \
+#--rm \
+#--detach \
+
+    

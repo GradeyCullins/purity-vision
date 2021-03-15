@@ -14,7 +14,7 @@ import (
 )
 
 // Server listens on localhost:8080 by default.
-var listenAddr string = "127.0.0.1"
+var listenAddr string = ""
 
 // Store the db connection passed from main.go.
 var conn *pg.DB
