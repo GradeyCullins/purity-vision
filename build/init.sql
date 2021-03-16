@@ -20,7 +20,7 @@ CREATE TABLE public.images
     error text,
     pass boolean NOT NULL default false,
     date_added timestamp NOT NULL default CURRENT_TIMESTAMP,
-    PRIMARY KEY (hash)
+    PRIMARY KEY (hash, uri)
 );
 
 ALTER TABLE public.images

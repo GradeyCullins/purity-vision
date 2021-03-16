@@ -1,4 +1,7 @@
 version: "3.7"
+secrets:
+  google_credentials:
+    file: ${GOOGLE_APPLICATION_CREDENTIALS}
 services:
   web:
     image: purity-vision:latest
@@ -6,35 +9,27 @@ services:
     command: bash -c 'while !</dev/tcp/postgres/5432; do sleep 1; done; ./purity-vision-filter -port 8080'
     ports:
       - "8080:8080"
+    secrets:
+      - google_credentials
     environment:
-      - PURITY_DB_HOST=postgres
-      - PURITY_DB_PORT=5432
-      - PURITY_DB_NAME=purity
-      - PURITY_DB_USER=postgres
-      - PURITY_DB_PASS=eGGQATPkx8JA66
-      - PURITY_DB_SSL_MODE=disable
-      - GOOGLE_APPLICATION_CREDENTIALS="/home/gb/Repositories/purity-vision/creds.json"
-      - PROJECT_ROOT="/home/gb/Repositories/purity-vision"
-      - PURITY_LOG_LEVEL=0
+      - PURITY_DB_HOST=${PURITY_DB_HOST}
+      - PURITY_DB_PORT=${PURITY_DB_PORT}
+      - PURITY_DB_NAME=${PURITY_DB_NAME}
+      - PURITY_DB_USER=${PURITY_DB_USER}
+      - PURITY_DB_PASS=${PURITY_DB_PASS}
+      - PURITY_DB_SSL_MODE=${PURITY_DB_SSL_MODE}
+      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/google_credentials
+      - PROJECT_ROOT=${PROJECT_ROOT}
+      - PURITY_LOG_LEVEL=${PURITY_LOG_LEVEL}
   postgres:
     image: postgres:latest
     ports:
       - "5432:5432"
     environment:
-      - PROJECT_ROOT="/home/gb/Repositories/purity-vision"
-      - POSTGRES_DB="purity"
-      - POSTGRES_PASSWORD="eGGQATPkx8JA66"
+      - PROJECT_ROOT=${PROJECT_ROOT}
+      - POSTGRES_DB=${PURITY_DB_NAME}
+      - POSTGRES_PASSWORD=${PURITY_DB_PASS}
     volumes:
       - "/pg-docker-data:/var/lib/postgresql/data"
       - "${PROJECT_ROOT}/build:/docker-entrypoint-initdb.d"
 
-      
-#-p "${PURITY_DB_PORT}":5432 \
-#-e POSTGRES_DB="${PURITY_DB_NAME}" \
-#-e POSTGRES_PASSWORD="${PURITY_DB_PASS}" \
-#-v /pg-docker-data:/var/lib/postgresql/data \
-#-v "${PROJECT_ROOT}/build":/docker-entrypoint-initdb.d \
-#--rm \
-#--detach \
-
-    
