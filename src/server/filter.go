@@ -62,7 +62,7 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 		for i := 0; i < size; i++ {
 			uri := imgURIList[i]
 			if img.URI == uri {
-				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass})
+				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass, ""})
 				delete(uriPathMap, uri)
 
 				// If the URI is found in the cache response, remove it from the URI list to avoid
@@ -78,8 +78,11 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 
 	for _, uri := range imgURIList {
 		path, err := utils.Download(uri)
+
+		// If the download fails, log the error and skip to the next download.
 		if err != nil {
-			return nil, err
+			logger.Error().Msg(err.Error())
+			continue
 		}
 		f, err := os.Open(path)
 		if err != nil {
@@ -115,12 +118,18 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 					ImgURI: uri,
 					Error:  fmt.Sprintf("Failed to annotate image: %s with error: %s", uri, res.Error),
 					Pass:   false,
+					Reason: "",
 				})
 			} else {
+				isPass, reason := isImgSafe(res, filterSettings)
+				if reason != "" {
+					logger.Debug().Msgf("Image %s failed the filter because it had %s content", uri, reason)
+				}
 				imgResList = append(imgResList, ImgFilterRes{
 					ImgURI: uri,
 					Error:  "",
-					Pass:   isImgSafe(res, filterSettings),
+					Pass:   isPass,
+					Reason: reason,
 				})
 			}
 		}
@@ -134,7 +143,9 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 			uriHashMap[filterRes.ImgURI],
 			filterRes.ImgURI,
 			errors.New(filterRes.Error),
-			filterRes.Pass, time.Now(),
+			filterRes.Pass,
+			filterRes.Reason,
+			time.Now(),
 		)
 		if err != nil {
 			return nil, err
@@ -151,7 +162,7 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 	return &imgResList, nil
 }
 
-func isImgSafe(air *pb.AnnotateImageResponse, fs FilterSettings) bool {
+func isImgSafe(air *pb.AnnotateImageResponse, fs FilterSettings) (bool, string) {
 	ssa := air.SafeSearchAnnotation
 
 	// Enable all the filter rules if the filter settings are empty.
@@ -165,20 +176,23 @@ func isImgSafe(air *pb.AnnotateImageResponse, fs FilterSettings) bool {
 	}
 
 	if fs.Adult && ssa.Adult >= pb.Likelihood_LIKELY {
-		return false
+		return false, "adult"
 	}
 
 	if fs.Medical && ssa.Medical >= pb.Likelihood_LIKELY {
-		return false
+		return false, "medical"
 	}
 
 	if fs.Violence && ssa.Violence >= pb.Likelihood_LIKELY {
-		return false
+		return false, "violence"
 	}
 
-	if fs.Racy && ssa.Racy >= pb.Likelihood_LIKELY {
-		return false
+	// Set this to "very likely" because anything less strict
+	// was filtering out cartoons that I did not personally deem
+	// to be innapropriate or "racy".
+	if fs.Racy && ssa.Racy >= pb.Likelihood_VERY_LIKELY {
+		return false, "racy"
 	}
 
-	return true
+	return true, ""
 }

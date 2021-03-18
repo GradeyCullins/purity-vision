@@ -19,7 +19,7 @@ database:
 	./start-db.sh
 
 test:
-	go test ./...
+	PURITY_DB_HOST="localhost" go test ./...
 
 stop:
 	docker-compose down
