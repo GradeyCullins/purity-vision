@@ -1,17 +1,31 @@
-run: build database
-	./purity-vision-filter
+SOURCES := $(shell find ./ -name '*.go')
+NAME = purity-vision
+TAG = latest
 
-build:
+run: docker-build
+	docker-compose up --detach
+
+docker-build: build Dockerfile
+	docker build -t ${NAME}:${TAG} .
+
+build: $(SOURCES)
 	go build
+
+local: database
+
+	./purity-vision-filter -port 8080
 
 database:
 	./start-db.sh
 
 test:
-	go test ./...
+	PURITY_DB_HOST="localhost" go test ./...
+
+stop:
+	docker-compose down
 
 clean:
 	rm purity-vision-filter
 	docker stop purity-pg
 
-.PHONY: build clean
+.PHONY: clean docker-build run local database test down stop

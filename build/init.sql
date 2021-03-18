@@ -19,8 +19,9 @@ CREATE TABLE public.images
     uri text NOT NULL,
     error text,
     pass boolean NOT NULL default false,
+    reason text,
     date_added timestamp NOT NULL default CURRENT_TIMESTAMP,
-    PRIMARY KEY (hash)
+    PRIMARY KEY (hash, uri)
 );
 
 ALTER TABLE public.images

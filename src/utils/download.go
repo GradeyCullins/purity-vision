@@ -1,12 +1,14 @@
 package utils
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 )
 
+// Download fetches a web resource at "uri" and returns a file handle to the downloaded response.
 func Download(uri string) (string, error) {
 	if _, err := url.ParseRequestURI(uri); err != nil {
 		return "", err
@@ -24,6 +26,10 @@ func Download(uri string) (string, error) {
 	}
 
 	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusNotFound {
+		return "", fmt.Errorf("Request to download image at: %s returned a 404", uri)
+	}
 
 	_, err = io.Copy(f, res.Body)
 	if err != nil {

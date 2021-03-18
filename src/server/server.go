@@ -14,7 +14,7 @@ import (
 )
 
 // Server listens on localhost:8080 by default.
-var listenAddr string = "127.0.0.1"
+var listenAddr string = ""
 
 // Store the db connection passed from main.go.
 var conn *pg.DB
@@ -35,9 +35,10 @@ type BatchImgFilterReq struct {
 // there are known cases where order is not guaranteed.
 // https://stackoverflow.com/a/7214312
 type ImgFilterRes struct {
-	ImgURI string `json:"imgURI"`
-	Error  string `json:"error"`
-	Pass   bool   `json:"pass"`
+	ImgURI string `json:"imgURI"` // The original URI where the image resides on the web.
+	Error  string `json:"error"`  // Any error returned when trying to filter the image.
+	Pass   bool   `json:"pass"`   // True if the image passed the filter.
+	Reason string `json:"reason"` // Why the image did not pass the filter if non-empty e.g. "adult", "violence", etc.
 }
 
 // BatchImgFilterRes represents a list of pass/fail statuses and any errors for each

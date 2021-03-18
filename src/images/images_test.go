@@ -2,7 +2,6 @@ package images
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 	"purity-vision-filter/src/config"
@@ -43,9 +42,10 @@ func TestNewImage(t *testing.T) {
 		uri,
 		sql.NullString{},
 		true,
+		"",
 		time,
 	}
-	img, err := NewImage(fakeHash, uri, fmt.Errorf(""), true, time)
+	img, err := NewImage(fakeHash, uri, nil, true, "", time)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,12 +56,17 @@ func TestNewImage(t *testing.T) {
 		(expected.DateAdded != img.DateAdded) {
 		t.Fatalf("Expected %v to equal %v", expected, img)
 	}
+
+	_, err = NewImage(fakeHash, uri, nil, false, "", time)
+	if err == nil {
+		t.Fatal("Expected NewImage to throw error if pass is false and error and reason are empty")
+	}
 }
 
 func TestInsertImage(t *testing.T) {
 	for _, uri := range imgURIList {
 		fakeHash := utils.Hash(uri)
-		img, err := NewImage(fakeHash, uri, fmt.Errorf(""), true, time.Now())
+		img, err := NewImage(fakeHash, uri, nil, true, "", time.Now())
 		if err != nil {
 			t.Fatal(err)
 		}
