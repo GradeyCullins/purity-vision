@@ -62,7 +62,7 @@ func filter(filterRequest BatchImgFilterReq) (*BatchImgFilterRes, error) {
 		for i := 0; i < size; i++ {
 			uri := imgURIList[i]
 			if img.URI == uri {
-				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass, ""})
+				cachedImgFilterList = append(cachedImgFilterList, ImgFilterRes{uri, img.Error.String, img.Pass, img.Reason})
 				delete(uriPathMap, uri)
 
 				// If the URI is found in the cache response, remove it from the URI list to avoid
