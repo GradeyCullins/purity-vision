@@ -12,4 +12,4 @@ RUN go install -v ./...
 
 EXPOSE 8080
 
-CMD ["purity-vision-filter", "-port", "8080"]
+CMD ["purity-vision", "-port", "8080"]

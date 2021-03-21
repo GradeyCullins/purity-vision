@@ -1,31 +1,27 @@
-SOURCES := $(shell find ./ -name '*.go')
-NAME = purity-vision
+SOURCES := $(shell find . -type f -name '*.go')
+TARGET = purity-vision
+.DEFAULT_GOAL: $(TARGET)
 TAG = latest
 
-run: docker-build
+.PHONY: docker-run run test docker-stop clean
+
+docker-run: $(TARGET)
 	docker-compose up --detach
 
-docker-build: build Dockerfile
-	docker build -t ${NAME}:${TAG} .
-
-build: $(SOURCES)
-	go build
-
-local: database
-
-	./purity-vision-filter -port 8080
-
-database:
+run: $(TARGET)
 	./start-db.sh
+	./${TARGET}
+
+$(TARGET): $(SOURCES) Dockerfile .envrc
+	go build -o ${TARGET}
+	docker build -t ${TARGET}:${TAG} .
 
 test:
 	PURITY_DB_HOST="localhost" go test ./...
 
-stop:
+docker-stop:
 	docker-compose down
 
 clean:
-	rm purity-vision-filter
+	rm ${NAME}
 	docker stop purity-pg
-
-.PHONY: clean docker-build run local database test down stop
