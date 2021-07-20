@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,6 +21,58 @@ type TestServe struct {
 
 func (s *TestServe) Init(_conn *pg.DB) {
 	conn = _conn
+}
+
+func TestHealthHandler(t *testing.T) {
+	testHealthNoBody(t)
+	testHealthJunkBody(t)
+}
+
+func testHealthNoBody(t *testing.T) {
+	req, err := http.NewRequest("GET", "/health", nil)
+	if err != nil {
+		t.Error("Failed to create test HTTP request")
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(health)
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != 200 {
+		t.Errorf("Health endpoint expected response 200 but got %d", rr.Code)
+	}
+}
+
+type junkData struct {
+	Name  string
+	Color int
+}
+
+// The health endpoint given junk POST data should still simply return a 200 code.
+func testHealthJunkBody(t *testing.T) {
+	someData := junkData{
+		Name:  "pil",
+		Color: 221,
+	}
+	b, err := json.Marshal(someData)
+	if err != nil {
+		t.Error("Failed to marshal request body struct")
+	}
+	r := bytes.NewReader(b)
+	req, err := http.NewRequest("POST", "/health", r)
+	if err != nil {
+		t.Error("Failed to create test HTTP request")
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(health)
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != 200 {
+		t.Errorf("Health endpoint expected response 200 but got %d", rr.Code)
+	}
 }
 
 func TestBatchImgFilterHandler(t *testing.T) {
@@ -86,7 +139,7 @@ func testBatchImgFilterHandler(fr BatchImgFilterReq) (*httptest.ResponseRecorder
 
 	req, err := http.NewRequest("POST", "/filter", r)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create test HTTP request")
+		return nil, errors.New("Failed to create test HTTP request")
 	}
 
 	rr := httptest.NewRecorder()
