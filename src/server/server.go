@@ -71,10 +71,12 @@ func (s *Serve) Init(port int, _conn *pg.DB) {
 
 	// Define handlers.
 	batchFilterHandler := http.HandlerFunc(batchFilter)
+	healthHandler := http.HandlerFunc(health)
 
 	// Create a multiplexer.
 	mux := http.NewServeMux()
 	mux.Handle("/filter", addCorsHeaders(batchFilterHandler))
+	mux.Handle("/health", addCorsHeaders(healthHandler))
 
 	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
 	log.Info().Msgf("Web server now listening on %s", listenAddr)
@@ -91,6 +93,10 @@ var addCorsHeaders = func(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Expose-Headers", "Authorization")
 		next.ServeHTTP(w, r)
 	})
+}
+
+func health(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(200)
 }
 
 func batchFilter(w http.ResponseWriter, req *http.Request) {
