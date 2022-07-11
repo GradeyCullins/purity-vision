@@ -13,7 +13,7 @@ run: $(TARGET)
 	./${TARGET}
 
 $(TARGET): $(SOURCES) Dockerfile .envrc
-	go build -o ${TARGET}
+	GOOS=linux GOARCH=amd64 go build -o ${TARGET}
 	docker build -t ${TARGET}:${TAG} .
 
 test:

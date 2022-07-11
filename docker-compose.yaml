@@ -7,6 +7,8 @@ services:
     image: purity-vision:latest
     depends_on:
       - postgres
+    links:
+      - postgres
     command: bash -c 'while !</dev/tcp/postgres/5432; do sleep 1; done; ./purity-vision -port 8080'
     ports:
       - "8080:8080"
