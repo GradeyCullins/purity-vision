@@ -116,8 +116,7 @@ func TestBatchImgFilterHandler(t *testing.T) {
 	if res.Code != 200 {
 		t.Error("Web server should have returned a 200")
 	}
-	var fRes BatchImgFilterRes
-	fRes = []ImgFilterRes{}
+	var fRes BatchImgFilterRes = []ImgFilterRes{}
 	json.Unmarshal(res.Body.Bytes(), &fRes)
 	if len(fRes) != 1 || fRes[0].Pass != true {
 		t.Error("Handler didn't return the right results")
@@ -143,7 +142,7 @@ func testBatchImgFilterHandler(fr BatchImgFilterReq) (*httptest.ResponseRecorder
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(batchFilter)
+	handler := http.HandlerFunc(batchFilterImpl)
 
 	handler.ServeHTTP(rr, req)
 

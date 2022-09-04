@@ -1,9 +1,6 @@
 #!/bin/sh
 
-PURITY_DB_HOST="localhost"
-
-if ! go test ./...; then
-	echo "Please fix tests before committing."
+if ! make test; then
+echo "Please fix tests before committing."
 	exit 1
 fi
-

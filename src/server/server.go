@@ -28,6 +28,11 @@ type BatchImgFilterReq struct {
 	FilterSettings `json:"filterSettings"`
 }
 
+type ImgFilterReq struct {
+	ImgURI         string `json:"imgURI"`
+	FilterSettings `json:"filterSettings"`
+}
+
 // ImgFilterRes returns the pass/fail status and any errors for a single image URI.
 //
 // TODO: consider adding 'URI' as a key. Currently, we are taking advantage of the fact
@@ -70,12 +75,17 @@ func (s *Serve) Init(port int, _conn *pg.DB) {
 	conn = _conn
 
 	// Define handlers.
-	batchFilterHandler := http.HandlerFunc(batchFilter)
+	batchFilterHandler := http.HandlerFunc(batchFilterImpl)
+	filterHandler := http.HandlerFunc(filterImpl)
 	healthHandler := http.HandlerFunc(health)
 
 	// Create a multiplexer.
 	mux := http.NewServeMux()
-	mux.Handle("/filter", addCorsHeaders(batchFilterHandler))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello world"))
+	})
+	mux.Handle("/filter/batch", addCorsHeaders(batchFilterHandler))
+	mux.Handle("/filter/single", addCorsHeaders(filterHandler))
 	mux.Handle("/health", addCorsHeaders(healthHandler))
 
 	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
@@ -99,7 +109,30 @@ func health(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(200)
 }
 
-func batchFilter(w http.ResponseWriter, req *http.Request) {
+func filterImpl(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "POST":
+		var filterReq ImgFilterReq
+
+		decoder := json.NewDecoder(req.Body)
+		if err := decoder.Decode(&filterReq); err != nil {
+			writeError(400, "JSON body missing or malformed", w)
+			return
+		}
+
+		if _, err := url.ParseRequestURI(filterReq.ImgURI); err != nil {
+			writeError(400, fmt.Sprintf("%s is not a valid URI\n", filterReq.ImgURI), w)
+			return
+		}
+
+		logger.Info().Msg(filterReq.ImgURI)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode("It worked")
+	}
+}
+
+func batchFilterImpl(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		var filterReqPayload BatchImgFilterReq
