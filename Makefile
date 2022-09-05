@@ -19,7 +19,7 @@ $(TARGET): $(SOURCES) Dockerfile .envrc
 test:
 	PURITY_DB_HOST="localhost" go test ./...
 
-docker-stop:
+stop:
 	docker-compose down
 
 clean:

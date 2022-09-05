@@ -15,8 +15,21 @@ var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Wi
 // ImgTableName is the SQL table name for images.
 const ImgTableName = "images"
 
-// FindByURI returns images that have matching URI's.
-func FindByURI(conn *pg.DB, imgURIList []string) ([]Image, error) {
+// FindByURI returns an image with the matching URI.
+func FindByURI(conn *pg.DB, imgURI string) (*Image, error) {
+	var img Image
+
+	err := conn.Model(&img).Where("uri = ?", imgURI).Select()
+	if err != nil {
+		log.Error().Msgf("err: %v", err)
+		return nil, nil
+	}
+
+	return &img, nil
+}
+
+// FindAllByURI returns images that have matching URI's.
+func FindAllByURI(conn *pg.DB, imgURIList []string) ([]Image, error) {
 	var imgList []Image
 
 	if len(imgURIList) == 0 {

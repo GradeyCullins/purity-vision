@@ -80,7 +80,7 @@ func TestInsertImage(t *testing.T) {
 func TestFindImagesByURI(t *testing.T) {
 	smallURIList := imgURIList[:1]
 
-	imgList, err := FindByURI(conn, smallURIList)
+	imgList, err := FindAllByURI(conn, smallURIList)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -91,7 +91,7 @@ func TestFindImagesByURI(t *testing.T) {
 	}
 
 	smallURIList = []string{}
-	imgList, err = FindByURI(conn, smallURIList)
+	imgList, err = FindAllByURI(conn, smallURIList)
 	if err == nil {
 		t.Fatal("Expected FindImagesByURI to return an error because imgURIList cannot be empty")
 	}

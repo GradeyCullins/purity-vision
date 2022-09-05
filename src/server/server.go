@@ -69,30 +69,6 @@ func NewServe() *Serve {
 	return &Serve{}
 }
 
-// Init intializes the Serve instance and exposes it based on the port parameter.
-func (s *Serve) Init(port int, _conn *pg.DB) {
-	// Store the database connection in a global var.
-	conn = _conn
-
-	// Define handlers.
-	batchFilterHandler := http.HandlerFunc(batchFilterImpl)
-	filterHandler := http.HandlerFunc(filterImpl)
-	healthHandler := http.HandlerFunc(health)
-
-	// Create a multiplexer.
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello world"))
-	})
-	mux.Handle("/filter/batch", addCorsHeaders(batchFilterHandler))
-	mux.Handle("/filter/single", addCorsHeaders(filterHandler))
-	mux.Handle("/health", addCorsHeaders(healthHandler))
-
-	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
-	log.Info().Msgf("Web server now listening on %s", listenAddr)
-	log.Fatal().Msg(http.ListenAndServe(listenAddr, mux).Error())
-}
-
 var addCorsHeaders = func(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		allowedHeaders := "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, X-CSRF-Token"
@@ -126,9 +102,14 @@ func filterImpl(w http.ResponseWriter, req *http.Request) {
 		}
 
 		logger.Info().Msg(filterReq.ImgURI)
+		res, err := filterSingle(filterReq.ImgURI, filterReq.FilterSettings)
+		if err != nil {
+			writeError(500, "Something went wrong", w)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode("It worked")
+		json.NewEncoder(w).Encode(res)
 	}
 }
 
@@ -148,19 +129,21 @@ func batchFilterImpl(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		var res BatchImgFilterRes
+
 		// Validate the request payload URIs
 		for _, uri := range filterReqPayload.ImgURIList {
 			if _, err := url.ParseRequestURI(uri); err != nil {
 				writeError(400, fmt.Sprintf("%s is not a valid URI\n", uri), w)
 				return
 			}
-		}
 
-		res, err := filter(filterReqPayload)
-		if err != nil {
-			log.Error().Err(err).Msg("")
-			writeError(500, "Something went wrong", w)
-			return
+			singleRes, err := filterSingle(uri, filterReqPayload.FilterSettings)
+			if err != nil {
+				log.Error().Msgf("Error while filtering %s: %s", uri, err)
+			}
+
+			res = append(res, *singleRes)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
