@@ -6,7 +6,7 @@ TAG = latest
 .PHONY: docker-run run test docker-stop clean
 
 docker-run: $(TARGET)
-	docker-compose up --detach
+	docker compose up --detach
 
 run: $(TARGET)
 	./start-db.sh

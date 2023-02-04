@@ -10,6 +10,8 @@ FROM build
 
 RUN go install -v ./...
 
+ENV PURITY_DB_HOST=postgres
+
 EXPOSE 8080
 
 CMD ["purity-vision", "-port", "8080"]

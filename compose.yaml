@@ -33,6 +33,7 @@ services:
       - POSTGRES_DB=${PURITY_DB_NAME}
       - POSTGRES_PASSWORD=${PURITY_DB_PASS}
     volumes:
-      - "/pg-docker-data:/var/lib/postgresql/data"
+      # - "/pg-docker-data:/var/lib/postgresql/data"
+      - "/Users/gb/Desktop/pg-data:/var/lib/postgresql/data"
       - "${PROJECT_ROOT}/build:/docker-entrypoint-initdb.d"
 
