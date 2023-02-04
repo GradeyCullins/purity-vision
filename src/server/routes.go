@@ -20,9 +20,7 @@ func (s *Serve) Init(port int, _conn *pg.DB) {
 
 	// Create a multiplexer.
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello world"))
-	})
+	mux.Handle("/", http.FileServer(http.Dir("./")))
 	mux.Handle("/filter/batch", addCorsHeaders(batchFilterHandler))
 	mux.Handle("/filter/single", addCorsHeaders(filterHandler))
 	mux.Handle("/health", addCorsHeaders(healthHandler))
