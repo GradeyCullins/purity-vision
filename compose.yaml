@@ -26,6 +26,7 @@ services:
       - PURITY_LOG_LEVEL=${PURITY_LOG_LEVEL}
   postgres:
     image: postgres:latest
+    hostname: postgres
     ports:
       - "5432:5432"
     environment:
@@ -36,4 +37,3 @@ services:
       # - "/pg-docker-data:/var/lib/postgresql/data"
       - "/Users/gb/Desktop/pg-data:/var/lib/postgresql/data"
       - "${PROJECT_ROOT}/build:/docker-entrypoint-initdb.d"
-
