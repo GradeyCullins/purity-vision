@@ -27,5 +27,13 @@ CREATE TABLE public.images
 ALTER TABLE public.images
     OWNER to postgres;
 
+create table public.licenses
+(
+    id text,
+    stripe_id text,
+    is_valid boolean default false,
+    primary key (id)
+);
+
 -- Create the test database.
 CREATE DATABASE purity_test WITH TEMPLATE purity;
