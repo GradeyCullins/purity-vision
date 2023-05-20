@@ -11,8 +11,7 @@ import (
 
 type BatchAnnotateResponse map[string]*pb.AnnotateImageResponse
 
-// GetImgAnnotation annotates an image.
-func GetImgAnnotation(filePath string) (*pb.AnnotateImageResponse, error) {
+func BatchGetImgAnnotation(uris []string) (*pb.BatchAnnotateImagesResponse, error) {
 	ctx := context.Background()
 
 	client, err := vision.NewImageAnnotatorClient(ctx)
@@ -21,16 +20,49 @@ func GetImgAnnotation(filePath string) (*pb.AnnotateImageResponse, error) {
 	}
 	defer client.Close()
 
-	f, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
+	requests := make([]*pb.AnnotateImageRequest, 0)
 
-	image, err := vision.NewImageFromReader(f)
+	for _, uri := range uris {
+		requests = append(requests, &pb.AnnotateImageRequest{
+			Image: vision.NewImageFromURI(uri),
+			Features: []*pb.Feature{
+				{Type: pb.Feature_SAFE_SEARCH_DETECTION, MaxResults: 5},
+			},
+		})
+	}
+
+	req := &pb.BatchAnnotateImagesRequest{Requests: requests}
+
+	res, err := client.BatchAnnotateImages(ctx, req)
 	if err != nil {
 		return nil, err
 	}
+
+	return res, nil
+}
+
+// GetImgAnnotation annotates an image.
+func GetImgAnnotation(uri string) (*pb.AnnotateImageResponse, error) {
+	ctx := context.Background()
+
+	client, err := vision.NewImageAnnotatorClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	// f, err := os.Open(filePath)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer f.Close()
+
+	// image, err := vision.NewImageFromReader(f)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	image := vision.NewImageFromURI(uri)
 
 	req := &pb.AnnotateImageRequest{
 		Image: image,

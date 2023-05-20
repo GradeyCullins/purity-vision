@@ -29,7 +29,81 @@ func (fs *FilterSettings) IsEmpty() bool {
 	return !fs.Adult && !fs.Medical && !fs.Violence && !fs.Racy
 }
 
-// const MAX_IMAGES_PER_REQUEST = 16
+func filterImages(uris []string, fs FilterSettings) ([]*ImgFilterRes, error) {
+	// TODO: fixerino?
+	// uris = uris[:MAX_IMAGES_PER_REQUEST]
+
+	var res []*ImgFilterRes
+
+	// cachedRes = Find cached images
+	imgs, err := images.FindAllByURI(conn, uris)
+	if err != nil {
+		return nil, err
+	}
+
+	newURIs := make([]string, 0)
+
+	// Remove uri from uris if uri is in cachedRes
+	for _, uri := range uris {
+		found := false
+		for _, img := range imgs {
+			if img.URI == uri {
+				res = append(res, &ImgFilterRes{
+					ImgURI: img.URI,
+					Error:  img.Error.String,
+					Pass:   img.Pass,
+					Reason: img.Reason,
+				})
+				found = true
+				logger.Debug().Msgf("Found cached image: %s", uri)
+				break
+			}
+		}
+		if !found {
+			newURIs = append(newURIs, uri)
+		}
+	}
+
+	uris = newURIs
+
+	batchRes, err := vision.BatchGetImgAnnotation(uris)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, annotateRes := range batchRes.Responses {
+		uri := uris[i]
+		var filterRes *ImgFilterRes
+
+		if annotateRes.Error != nil {
+			filterRes = &ImgFilterRes{
+				ImgURI: uri,
+				Error:  fmt.Sprintf("Failed to annotate image: %s with error: %s", uri, annotateRes.Error),
+				Pass:   false,
+				Reason: "",
+			}
+		} else {
+			isSafe, reason := isImgSafe(annotateRes, fs)
+			if reason != "" {
+				logger.Debug().Msgf("Image %s failed the filter because it had %s content", uri, reason)
+			}
+			filterRes = &ImgFilterRes{
+				ImgURI: uri,
+				Error:  "",
+				Pass:   isSafe,
+				Reason: reason,
+			}
+		}
+		res = append(res, filterRes)
+
+		err = cacheFilterRes(filterRes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
 
 func filterSingle(uri string, fs FilterSettings) (*ImgFilterRes, error) {
 	var res *ImgFilterRes
@@ -52,14 +126,15 @@ func filterSingle(uri string, fs FilterSettings) (*ImgFilterRes, error) {
 	}
 
 	// otherwise download file
-	path, hash, err := fetchAndReadFile(uri)
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(path)
+	// path, hash, err := fetchAndReadFile(uri)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer os.Remove(path)
 
 	// Make filter request to Google Vision API.
-	imgAnnotation, err := vision.GetImgAnnotation(path)
+	// imgAnnotation, err := vision.GetImgAnnotation(path)
+	imgAnnotation, err := vision.GetImgAnnotation(uri)
 	if err != nil {
 		return nil, err
 	}
@@ -85,24 +160,33 @@ func filterSingle(uri string, fs FilterSettings) (*ImgFilterRes, error) {
 	}
 
 	// Cache filter response to db.
-	img, err = images.NewImage(
-		hash,
-		uri,
+	err = cacheFilterRes(res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func cacheFilterRes(res *ImgFilterRes) error {
+	// Cache filter response to db.
+	img, err := images.NewImage(
+		utils.Hash(res.ImgURI),
+		res.ImgURI,
 		errors.New(res.Error),
 		res.Pass,
 		res.Reason,
 		time.Now(),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if err = images.Insert(conn, img); err != nil {
-		return nil, err
+		return err
 	} else {
 		logger.Debug().Msgf("Adding %s to DB cache", res.ImgURI)
+		return nil
 	}
-
-	return res, nil
 }
 
 func fetchAndReadFile(uri string) (string, string, error) {
@@ -127,7 +211,7 @@ func fetchAndReadFile(uri string) (string, string, error) {
 	return path, utils.Hash(base64.StdEncoding.EncodeToString(content)), nil
 }
 
-func isImgSafe(air *pb.AnnotateImageResponse, fs FilterSettings) (bool, string) {
+func isImgSafe(air *pb.AnnotateImageResponse, fs FilterSettings) (isSafe bool, reason string) {
 	ssa := air.SafeSearchAnnotation
 
 	// Enable all the filter rules if the filter settings are empty.

@@ -17,6 +17,45 @@ var listenAddr string = ""
 // Store the db connection passed from main.go.
 var conn *pg.DB
 
+type PGStore struct {
+	db *pg.DB
+}
+
+func NewPGStore(db *pg.DB) *PGStore {
+	return &PGStore{db: db}
+}
+
+func (store *PGStore) GetLicenseByID(id string) (*License, error) {
+	license := new(License)
+	err := store.db.Model(license).Where("id = ?", id).Select()
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return license, nil
+}
+
+func (store *PGStore) GetLicenseByStripeID(stripeID string) (*License, error) {
+	license := new(License)
+	err := store.db.Model(license).Where("stripe_id = ?", stripeID).Select()
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return license, nil
+}
+
+func (store *PGStore) UpdateLicense(license *License) error {
+	_, err := store.db.Model(license).Update(license)
+	return err
+}
+
+var pgStore *PGStore
+
 var logger zerolog.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
 // BatchImgFilterReq is the form of an incoming JSON payload
@@ -46,7 +85,7 @@ type ImgFilterRes struct {
 
 // BatchImgFilterRes represents a list of pass/fail statuses and any errors for each
 // supplied image URI.
-type BatchImgFilterRes []ImgFilterRes
+type BatchImgFilterRes []*ImgFilterRes
 
 // ErrorRes is a JSON response containing an error message from the API.
 type ErrorRes struct {
@@ -65,18 +104,6 @@ type Serve struct {
 // NewServe returns an uninitialized Serve instance.
 func NewServe() *Serve {
 	return &Serve{}
-}
-
-var addCorsHeaders = func(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		allowedHeaders := "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, X-CSRF-Token"
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
-		w.Header().Set("Access-Control-Expose-Headers", "Authorization")
-		next.ServeHTTP(w, r)
-	})
 }
 
 func writeError(code int, message string, w http.ResponseWriter) {

@@ -30,6 +30,7 @@ ALTER TABLE public.images
 create table public.licenses
 (
     id text,
+    email text DEFAULT 'test@purityvision.com',
     stripe_id text,
     is_valid boolean default false,
     primary key (id)

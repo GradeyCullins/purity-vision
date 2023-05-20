@@ -3,7 +3,6 @@ package images
 import (
 	"fmt"
 	"os"
-	"purity-vision-filter/src/utils"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/rs/zerolog"
@@ -29,26 +28,16 @@ func FindByURI(conn *pg.DB, imgURI string) (*Image, error) {
 }
 
 // FindAllByURI returns images that have matching URI's.
-func FindAllByURI(conn *pg.DB, imgURIList []string) ([]Image, error) {
+func FindAllByURI(conn *pg.DB, imgs []string) ([]Image, error) {
 	var imgList []Image
 
-	if len(imgURIList) == 0 {
+	if len(imgs) == 0 {
 		return nil, fmt.Errorf("imgURIList cannot be empty")
 	}
 
 	// Build slice of img URI hashes.
-	uriHashList := make([]string, 0)
-	for _, uri := range imgURIList {
-		uriHashList = append(uriHashList, utils.Hash(uri))
-	}
 
-	conn.Model(&imgList).Where("uri IN (?)", pg.In(imgURIList)).Select()
-
-	for _, img := range imgList {
-		logger.Debug().Msgf("Found cached image: %s...", img.URI)
-	}
-
-	logger.Debug().Msgf("Cached %d/%d images", len(imgList), len(imgURIList))
+	conn.Model(&imgList).Where("uri IN (?)", pg.In(imgs)).Select()
 
 	return imgList, nil
 }
