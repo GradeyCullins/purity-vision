@@ -10,6 +10,7 @@ import (
 	"purity-vision-filter/src/utils"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/webhook"
 )
@@ -19,7 +20,7 @@ func health(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("All Good ☮️"))
 }
 
-func filterImpl(w http.ResponseWriter, req *http.Request) {
+func handleFilter(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		var filterReq ImgFilterReq
@@ -49,9 +50,8 @@ func filterImpl(w http.ResponseWriter, req *http.Request) {
 
 const MAX_IMAGES_PER_REQUEST = 16
 
-func batchFilterImpl(w http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case "POST":
+func handleBatchFilter(logger zerolog.Logger) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
 		var filterReqPayload BatchImgFilterReq
 
 		decoder := json.NewDecoder(req.Body)

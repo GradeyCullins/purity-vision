@@ -28,8 +28,8 @@ func (s *Serve) Init(port int, _conn *pg.DB) {
 	// Paywalled filter routes.
 	filterR := r.PathPrefix("/filter").Subrouter()
 	filterR.Use(paywallMiddleware(pgStore))
-	filterR.HandleFunc("/batch", batchFilterImpl).Methods("POST", "OPTIONS")
-	filterR.HandleFunc("/single", filterImpl).Methods("POST", "OPTIONS")
+	filterR.HandleFunc("/batch", handleBatchFilter(logger)).Methods("POST", "OPTIONS")
+	filterR.HandleFunc("/single", handleFilter).Methods("POST", "OPTIONS")
 
 	listenAddr = fmt.Sprintf("%s:%d", listenAddr, port)
 	log.Info().Msgf("Web server now listening on %s", listenAddr)
